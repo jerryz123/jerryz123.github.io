@@ -8,7 +8,6 @@ redirect_from:
   - /about.html
 ---
 
-I am currently a senior undergrad at UC Berkeley studing Electrical Engineering and Computer Science.
-In summer 2019, I will be a Ph.D. student studying computer architecture in [Berkeley Architecture Reseach](https://bar.eecs.berkeley.edu/), as part of the [ADEPT Lab](https://adept.eecs.berkeley.edu/), advised by [Krste Asanović](https://people.eecs.berkeley.edu/~krste/).
+I am a Ph.D. student studying computer architecture in [Berkeley Architecture Reseach](https://bar.eecs.berkeley.edu/), as part of the [ADEPT Lab](https://adept.eecs.berkeley.edu/), advised by [Krste Asanović](https://people.eecs.berkeley.edu/~krste/).
 
-I primarily work on the [Berkeley Out-of-Order Machine](https://boom-core.org/), an open-source, RISC-V implementation of a modern high-performance general-purpose processor. I have also contributed to the [Hwacha Vector Accelerator](http://hwacha.org/) and [Firesim](https://fires.im/) projects.
+I primarily work on the [Berkeley Out-of-Order Machine](https://boom-core.org/), an open-source, RISC-V implementation of a modern high-performance general-purpose processor. I am also a major contributor to the [Chipyard](https://github.com/ucb-bar/chipyard) hardware design framework.
