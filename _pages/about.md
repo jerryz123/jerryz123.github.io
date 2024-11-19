@@ -24,3 +24,4 @@ I also contribute to
  * [Spike](https://github.com/riscv-software-src/riscv-isa-sim), a RISC-V functional ISA simulator
  * [Gemmini](https://github.com/ucb-bar/gemmini), a systolic-array machine-learning accelerator
 
+My [Google Scholar](https://scholar.google.com/citations?user=y7PdKXsAAAAJ&hl=en).
