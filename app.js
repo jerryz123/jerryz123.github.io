@@ -29,10 +29,10 @@
   }
 
   const API_BASE = (window.API_BASE || '').replace(/\/$/, '');
-  const SYSTEM_PROMPT = "You are the helpful personal site assistant for Jerry Zhao. Be concise and friendly.";
+  // System prompt now lives in the backend (Cloudflare Worker)
 
   const STORAGE_KEY = 'jz_site_chats_v1';
-  const CACHE_KEY = 'jz_site_reply_cache_v1';
+  const CACHE_KEY = 'jz_site_reply_cache_v2';
   // Re-enable persistence in localStorage
   const store = {
     load() {
@@ -189,7 +189,7 @@
     const res = await fetch(`${API_BASE}/chat?stream=1`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: history, system: SYSTEM_PROMPT, temperature: 0.7, stream: true }),
+      body: JSON.stringify({ messages: history, stream: true }),
     });
     if (!res.ok) {
       const t = await safeText(res);
@@ -228,7 +228,8 @@
             chat.msgs[assistantIndex].text = acc;
             const now = Date.now();
             if (now - lastPaint > 50) {
-              if (bubbleEl) bubbleEl.innerHTML = renderMarkdown(acc);
+              // During streaming, avoid expensive markdown parsing; append plain text.
+              if (bubbleEl) bubbleEl.textContent = acc;
               lastPaint = now;
               maybeScrollBottom(false);
             }
@@ -299,7 +300,7 @@
     const res = await fetch(`${API_BASE}/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: history, system: SYSTEM_PROMPT, temperature: 0.7 }),
+      body: JSON.stringify({ messages: history }),
     });
     if (!res.ok) {
       const t = await safeText(res);
@@ -369,7 +370,7 @@
   newChatBtn.addEventListener('click', () => { goToLanding(); stickToBottom = true; });
 
   // Init
-  try { if (window.marked) window.marked.setOptions({ gfm: true, breaks: true }); } catch {}
+  try { if (window.marked) window.marked.setOptions({ gfm: true, breaks: false }); } catch {}
   autosize();
   renderAll();
 })();

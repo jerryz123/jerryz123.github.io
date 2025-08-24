@@ -12,9 +12,9 @@ Quick Start
 
 Endpoints
 - `GET /health` → `{ ok: true }`
-- `POST /chat` → JSON body `{ messages: [{ role, content }], system?, model?, temperature?, stream? }`
+- `POST /chat` → JSON body `{ messages: [{ role, content }], system?, model?, stream? }`
   - Non‑stream: returns `{ content, raw }`
-  - Stream: set `?stream=1` or body `stream: true`; returns OpenAI SSE as‑is
+  - Stream: set `?stream=1` or body `stream: true`; returns an event stream
 
 CORS
 - Set `ALLOWED_ORIGINS` in `wrangler.toml`, e.g. `https://jerryz123.github.io,https://your-domain.com`
@@ -29,7 +29,5 @@ curl -X POST "$WORKER_URL/chat" \
   -H 'content-type: application/json' \
   -d '{
     "messages": [{"role":"user","content":"Hello!"}],
-    "system": "You are Jerry\'s site bot.",
-    "temperature": 0.7
+    "system": "You are Jerry\'s site bot."
   }'
-

@@ -80,15 +80,23 @@ body {
 
 .messages { display: grid; gap: 14px; margin: 24px auto 100px; max-width: 760px; }
 .msg { display: grid; grid-template-columns: 36px 1fr; gap: 12px; padding: 14px 16px; background: #11141b; border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 8px 24px rgba(0,0,0,.18); animation: pop .18s ease; }
-.msg .bubble { white-space: normal; line-height: 1.65; }
-.msg .bubble p { margin: 0 0 0.7em; }
-.msg .bubble ul, .msg .bubble ol { padding-left: 1.2em; margin: 0.4em 0 0.7em; }
+.msg .bubble { white-space: normal; line-height: 1.5; }
+.msg .bubble p { margin: 0 0 0.5em; }
+.msg .bubble ul, .msg .bubble ol { padding-left: 1.2em; margin: 0.2em 0; }
+/* Compress spacing within list items */
+.msg .bubble li { margin: 0; }
+.msg .bubble li + li { margin-top: 0.15em; }
+.msg .bubble li > p { margin: 0; }
+.msg .bubble li > p + p { margin-top: 0.2em; }
+.msg .bubble p:last-child { margin-bottom: 0; }
+.msg .bubble li > p:last-child { margin-bottom: 0; }
 .msg .bubble code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; background: #0f1117; border: 1px solid #242938; padding: 0.1em 0.35em; border-radius: 6px; }
 .msg .bubble pre { background: #0f1117; border: 1px solid #242938; padding: 12px 14px; border-radius: 10px; overflow: auto; box-shadow: inset 0 1px 0 rgba(255,255,255,0.02); }
 .msg .bubble pre code { background: transparent; border: 0; padding: 0; }
 .msg .bubble blockquote { margin: 0.6em 0; padding-left: 0.9em; border-left: 3px solid #2a2f3a; color: var(--muted); }
 .msg .bubble h1, .msg .bubble h2, .msg .bubble h3 { margin: 0.6em 0 0.3em; line-height: 1.3; }
-.msg .bubble { white-space: pre-wrap; line-height: 1.5; }
+/* Preserve user-entered newlines without affecting Markdown block spacing */
+.msg.user .bubble { white-space: pre-wrap; }
 .msg .who { width: 36px; height: 36px; border-radius: 9px; display:flex; align-items:center; justify-content:center; font-size: 14px; }
 .msg.user .who { background: #21324a; color: #9fc1ff; }
 .msg.assistant .who { background: #1a2c27; color: #78e2be; }
