@@ -37,16 +37,17 @@ async function main() {
   // Fetch remote attachments (filename/bytes)
   // Note: We re-list again before pruning to avoid stale views while uploads are in-flight.
   let remote = await listVectorStoreFilesDetailed(vectorStoreId);
-  let remoteByName = groupBy(remote, x => x.filename || x.name || '');
+  let remoteByName = groupBy(remote, x => (x.filename || x.name || '').split('/').pop());
   const localInfo = files.map(abs => ({
     abs,
     rel: path.relative(KNOWLEDGE_DIR, abs).replace(/\\/g,'/'),
+    base: path.basename(abs),
     bytes: fs.statSync(abs).size,
   }));
 
   // Upload new/changed files; skip if same filename + same size already attached
   for (const info of localInfo) {
-    const candidates = remoteByName.get(info.rel) || [];
+    const candidates = remoteByName.get(info.base) || [];
     const same = candidates.find(r => Number(r.bytes) === Number(info.bytes));
     if (same) {
       console.log(`Skip (unchanged): ${info.rel}`);
@@ -60,10 +61,10 @@ async function main() {
 
   // Re-list after potential uploads so pruning sees the latest state
   remote = await listVectorStoreFilesDetailed(vectorStoreId);
-  remoteByName = groupBy(remote, x => x.filename || x.name || '');
+  remoteByName = groupBy(remote, x => (x.filename || x.name || '').split('/').pop());
 
   // Prune: detach remote files that no longer exist locally, and de-dup older duplicates by name
-  const localNames = new Set(localInfo.map(x => x.rel));
+  const localNames = new Set(localInfo.map(x => x.base));
   const toDetach = [];
   for (const [name, arr] of remoteByName.entries()) {
     // If file name is not in local set -> detach all versions
@@ -78,11 +79,13 @@ async function main() {
     }
   }
   for (const r of toDetach) {
-    process.stdout.write(`Detaching stale: ${r.filename} (${r.id}) ... `);
-    await detachFile(vectorStoreId, r.id);
+    const ident = r.vsfile_id || r.id || r.file_id;
+    process.stdout.write(`Detaching stale: ${r.filename} (${ident}) ... `);
+    await detachFile(vectorStoreId, ident);
     // Optionally delete the file object to save storage if env var set
     if (process.env.OPENAI_DELETE_FILES === '1') {
-      await deleteFile(r.id);
+      const fid = r.file_id || r.id;
+      if (fid) await deleteFile(fid);
       process.stdout.write('deleted ');
     }
     console.log('done');
@@ -103,10 +106,21 @@ function walk(dir) {
   return out;
 }
 
+function readVectorStoreIdFromToml() {
+  try {
+    const text = fs.readFileSync(WRANGLER_TOML, 'utf8');
+    const m = text.match(/VECTOR_STORE_ID\s*=\s*"([^"]+)"/);
+    if (m) return m[1];
+  } catch {}
+  return null;
+}
+
 async function ensureVectorStore(name) {
   // Try to find an existing vector store by name (OpenAI API lacks list+filter by name; we simply create a new one if not provided)
   // If you already know your ID, set VECTOR_STORE_ID in env to skip creation
   if (process.env.VECTOR_STORE_ID) return process.env.VECTOR_STORE_ID;
+  const fromToml = readVectorStoreIdFromToml();
+  if (fromToml) return fromToml;
   const res = await fetch('https://api.openai.com/v1/vector_stores', {
     method: 'POST',
     headers: {
@@ -156,14 +170,14 @@ async function attachFile(vectorStoreId, fileId) {
   }
 }
 
-async function detachFile(vectorStoreId, fileId) {
-  const res = await fetch(`https://api.openai.com/v1/vector_stores/${vectorStoreId}/files/${fileId}`, {
+async function detachFile(vectorStoreId, fileOrVsfileId) {
+  const res = await fetch(`https://api.openai.com/v1/vector_stores/${vectorStoreId}/files/${fileOrVsfileId}`, {
     method: 'DELETE',
     headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}` },
   });
   if (!res.ok) {
     const t = await res.text();
-    throw new Error(`Failed to detach file ${fileId}: ${res.status} ${t}`);
+    throw new Error(`Failed to detach file ${fileOrVsfileId}: ${res.status} ${t}`);
   }
 }
 
@@ -196,15 +210,15 @@ async function listVectorStoreFilesDetailed(vectorStoreId) {
     const batch = data.data || [];
     // Enrich with file metadata (filename/bytes/created_at)
     for (const f of batch) {
-      // Prefer file_id; some API shapes return id = vsfile_..., not file_...
-      const fid = f.file_id || f.id;
+      const vsfileId = f.id; // attachment id (vsfile_...)
+      const fid = f.file_id || f.id; // underlying file id (file_...)
       if (!fid) continue;
       const meta = await fetch(`https://api.openai.com/v1/files/${fid}`, {
         headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}` },
       });
       if (!meta.ok) continue;
       const info = await meta.json();
-      out.push({ id: fid, filename: info.filename, bytes: info.bytes, created_at: info.created_at });
+      out.push({ id: fid, file_id: fid, vsfile_id: vsfileId, filename: info.filename, bytes: info.bytes, created_at: info.created_at });
     }
     if (!data.has_more) break;
     after = data.last_id || (batch.length ? (batch[batch.length-1].id || batch[batch.length-1].file_id) : null);

@@ -5,9 +5,10 @@ A minimal, ChatGPT‑style personal website with a sidebar of chats on the left 
 ## Features
 - Chat UI with a left sidebar
 - Create chats on first send; return to landing via New Chat or the brand
-- Local persistence (saved in your browser); Clear Chats button to reset
+- Local persistence (saved in your browser); Clear Chats button to reset (no confirmation)
+- Remembers the active chat across refreshes (you return to the same chat)
 - Markdown rendering for assistant messages (via marked + DOMPurify)
-- Streaming replies (token-by-token)
+- Streaming replies render as Markdown as they arrive
 - Backend proxy on Cloudflare Workers for OpenAI API calls (server-side system prompt, CORS, per‑IP rate limiting)
 - Retrieval: Optional OpenAI Vector Store (files in `knowledge/`) used via Responses API `file_search`
 
@@ -55,6 +56,9 @@ window.API_BASE = 'https://<your-worker>.workers.dev';
 
 When set, the site will POST chat history to `${API_BASE}/chat` and render the streamed response. If not set, sends will show a helpful error.
 
+UI options and persistence
+- The currently open chat is remembered across refreshes.
+
 ## Retrieval (Vector Store)
 - Put public context files about you in `knowledge/` (`.md`, `.txt`).
 - Sync them to an OpenAI Vector Store and deploy:
@@ -98,6 +102,7 @@ Note: Files in this repo are public if the repo is public. Keep private material
 - Notable storage keys:
   - `localStorage['jz_site_chats_v1']`
   - `localStorage['jz_site_reply_cache_v2']`
+  - `localStorage['jz_site_current_chat_v1']`
 
 ---
 Questions or ideas to improve? Open an issue or reach out.

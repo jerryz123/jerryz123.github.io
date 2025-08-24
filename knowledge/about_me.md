@@ -28,14 +28,16 @@
 - Network‑on‑chip design, SoC design.
 
 ## Links
-- Website: https://jzhao.me
+- Website: https://www.jzhao.me
 - LinkedIn: https://www.linkedin.com/in/jerryzhao1/
 - GitHub: https://github.com/jerryz123
 - Email: jerry@openai.com
 - Google Scholar: https://scholar.google.com/citations?user=y7PdKXsAAAAJ
 
-s## PhD Project Overview
-I have contributed to a wide range of architecture and hardware projects. My work includes deep superscalar out‑of‑order cores (BOOM, SonicBOOM), machine learning accelerators (GEMMINI), vector units (Saturn), interconnects (Constellation), and SoC design frameworks (Chipyard). I am deeply familiar with DSL‑based hardware design flows, performance modeling, architecture design, and accelerator ISA design. I still maintain these projects for the open‑source community in a limited capacity.
+## PhD Project Overview
+I have contributed to a wide range of architecture and hardware projects. My work includes deep superscalar out‑of‑order cores (BOOM, SonicBOOM), machine learning accelerators (GEMMINI), vector units (Saturn), interconnects (Constellation), and SoC design frameworks (Chipyard). I am deeply familiar with DSL‑based hardware design flows, performance modeling, architecture design, and accelerator ISA design.
+I am no longer currently working on any of these projects full time.
+I still maintain these projects for the open‑source community in a limited capacity.
 
 ### SonicBOOM (Lead developer)
 - Repo: https://github.com/riscv-boom/riscv-boom (original link: github.com/riscv-boom/riscv-boom.git)

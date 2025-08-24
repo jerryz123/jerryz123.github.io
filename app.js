@@ -33,6 +33,7 @@
 
   const STORAGE_KEY = 'jz_site_chats_v1';
   const CACHE_KEY = 'jz_site_reply_cache_v2';
+  const CURRENT_KEY = 'jz_site_current_chat_v1';
   // Re-enable persistence in localStorage
   const store = {
     load() {
@@ -52,21 +53,20 @@
   };
   let replyCache = cache.load();
 
-  // If a chat ended with a pending placeholder (e.g., refresh mid-request), try to fill from cache
+  // If a chat ended with a pending placeholder (e.g., refresh mid-request), drop the Thinking… text
   for (const c of chats) {
     if (!c || !Array.isArray(c.msgs) || c.msgs.length === 0) continue;
     const last = c.msgs[c.msgs.length - 1];
     if (last.who === 'assistant' && last.text === 'Thinking…') {
-      const key = convoKey(c, /*excludeTrailingAssistant=*/true);
-      if (replyCache[key]) {
-        last.text = replyCache[key];
-      } else {
-        last.text = '(interrupted — no cached reply)';
-      }
+      last.text = '';
     }
   }
-  // Start on landing with no active chat if nothing saved
-  let currentId = chats.length ? chats[0].id : null;
+  // Restore last active chat id; if not found, show landing
+  let currentId = null;
+  try {
+    const savedId = localStorage.getItem(CURRENT_KEY) || '';
+    if (savedId && chats.some(c => c.id === savedId)) currentId = savedId;
+  } catch {}
 
   function uid() { return Math.random().toString(36).slice(2, 10); }
 
@@ -83,7 +83,14 @@
       `;
       if (chat.id === currentId) a.style.borderColor = 'var(--accent)';
       a.addEventListener('click', () => {
+        // Remove Thinking… text from the current chat if present
+        const cur = chats.find(c => c.id === currentId);
+        if (cur) {
+          clearThinkingText(cur);
+          store.save(chats);
+        }
         currentId = chat.id;
+        try { localStorage.setItem(CURRENT_KEY, currentId); } catch {}
         stickToBottom = true; // ensure we pin to bottom when switching chats
         forceNextScroll = true; // force scroll even if not near bottom
         renderAll();
@@ -106,7 +113,16 @@
   function msgEl(who, text) {
     const el = document.createElement('div');
     el.className = `msg ${who}`;
-    const contentHTML = (who === 'assistant') ? renderMarkdown(text || '') : escapeHtml(text || '');
+    const isAssistant = who === 'assistant';
+    // Special animated placeholder for pending responses
+    if (isAssistant && text === 'Thinking…') {
+      el.innerHTML = `
+        <div class="who">${who === 'user' ? '🧑' : '✨'}</div>
+        <div class="bubble thinking">Thinking<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></div>
+      `;
+      return el;
+    }
+    const contentHTML = isAssistant ? renderMarkdown(text || '') : escapeHtml(text || '');
     el.innerHTML = `
       <div class="who">${who === 'user' ? '🧑' : '✨'}</div>
       <div class="bubble">${contentHTML}</div>
@@ -143,11 +159,14 @@
       chat = { id: uid(), title: 'New chat', msgs: [] };
       chats.unshift(chat);
       currentId = chat.id;
+      try { localStorage.setItem(CURRENT_KEY, currentId); } catch {}
       stickToBottom = true;
       forceNextScroll = true;
     }
     chat.msgs.push({ who: 'user', text });
     setTitleFromFirstUserLine(chat);
+    // Persist the user message immediately
+    store.save(chats);
 
     // Check cache: if we already have a reply for this exact conversation state, reuse it
     const key = convoKey(chat);
@@ -163,11 +182,10 @@
       return;
     }
 
-    // Placeholder assistant bubble; stream in content
-    chat.msgs.push({ who: 'assistant', text: '' });
+    // Placeholder assistant bubble; show Thinking… until first tokens arrive
+    chat.msgs.push({ who: 'assistant', text: 'Thinking…' });
     assistantIndex = chat.msgs.length - 1;
 
-    store.save(chats);
     prompt.value = '';
     sendBtn.disabled = true;
     autosize();
@@ -185,7 +203,7 @@
 
   async function streamCompletion(chat, assistantIndex, key) {
     if (!API_BASE) throw new Error('API_BASE is not set. Edit config.js.');
-    const history = chat.msgs.map(m => ({ role: m.who === 'user' ? 'user' : 'assistant', content: m.text }));
+    const history = buildHistoryForAPI(chat);
     const res = await fetch(`${API_BASE}/chat?stream=1`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -216,7 +234,7 @@
           replyCache[key] = acc;
           cache.save(replyCache);
           store.save(chats);
-          if (bubbleEl) bubbleEl.innerHTML = renderMarkdown(acc);
+          if (bubbleEl) { bubbleEl.innerHTML = renderMarkdown(acc); }
           maybeScrollBottom(false);
           return;
         }
@@ -228,8 +246,14 @@
             chat.msgs[assistantIndex].text = acc;
             const now = Date.now();
             if (now - lastPaint > 50) {
-              // During streaming, avoid expensive markdown parsing; append plain text.
-              if (bubbleEl) bubbleEl.textContent = acc;
+              // During streaming, render incrementally: raw uses text, otherwise Markdown
+              if (bubbleEl) {
+                if (bubbleEl.classList.contains('thinking')) {
+                  // First tokens: drop thinking state
+                  bubbleEl.classList.remove('thinking');
+                }
+                bubbleEl.innerHTML = renderMarkdown(acc);
+              }
               lastPaint = now;
               maybeScrollBottom(false);
             }
@@ -240,7 +264,9 @@
     replyCache[key] = acc;
     cache.save(replyCache);
     store.save(chats);
-    if (bubbleEl) bubbleEl.innerHTML = renderMarkdown(acc);
+    if (bubbleEl) {
+      bubbleEl.innerHTML = renderMarkdown(acc);
+    }
     maybeScrollBottom(false);
   }
 
@@ -251,6 +277,13 @@
       }
     } catch {}
     return escapeHtml(text || '');
+  }
+
+  function clearThinkingText(chat) {
+    if (!chat || !Array.isArray(chat.msgs)) return;
+    for (const m of chat.msgs) {
+      if (m && m.who === 'assistant' && m.text === 'Thinking…') m.text = '';
+    }
   }
 
   function getLastAssistantBubble() {
@@ -293,10 +326,7 @@
   async function fetchCompletion(chat) {
     if (!API_BASE) throw new Error('API_BASE is not set. Edit config.js.');
     // Build chat history into OpenAI format
-    const history = chat.msgs.map(m => ({
-      role: m.who === 'user' ? 'user' : 'assistant',
-      content: m.text,
-    }));
+    const history = buildHistoryForAPI(chat);
     const res = await fetch(`${API_BASE}/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -322,7 +352,14 @@
   }
 
   function goToLanding() {
+    // Remove Thinking… text from the current chat if present
+    const cur = chats.find(c => c.id === currentId);
+    if (cur) {
+      clearThinkingText(cur);
+      store.save(chats);
+    }
     currentId = null;
+    try { localStorage.setItem(CURRENT_KEY, ''); } catch {}
     renderAll();
     prompt.focus();
   }
@@ -337,11 +374,10 @@
   const clearBtn = document.getElementById('clearChatsBtn');
   if (clearBtn) {
     clearBtn.addEventListener('click', () => {
-      const ok = confirm('Clear all chats? This will remove chat history saved in your browser.');
-      if (!ok) return;
       chats = [];
       currentId = null;
       store.save(chats);
+      try { localStorage.setItem(CURRENT_KEY, ''); } catch {}
       // Also clear the reply cache
       replyCache = {};
       cache.save(replyCache);
@@ -396,4 +432,22 @@ function hashStr(s) {
   for (let i = 0; i < s.length; i++) h = ((h << 5) + h) + s.charCodeAt(i);
   // Convert to unsigned hex
   return (h >>> 0).toString(16);
+}
+
+// Build message history for the API: include turns up to and including the last user message.
+// Skip any trailing assistant placeholder like 'Thinking…' or empty content.
+function buildHistoryForAPI(chat) {
+  const msgs = Array.isArray(chat?.msgs) ? chat.msgs : [];
+  let lastUserIdx = -1;
+  for (let i = msgs.length - 1; i >= 0; i--) { if (msgs[i].who === 'user') { lastUserIdx = i; break; } }
+  const subset = lastUserIdx >= 0 ? msgs.slice(0, lastUserIdx + 1) : msgs;
+  const out = [];
+  for (const m of subset) {
+    if (!m || typeof m.text !== 'string') continue;
+    const role = m.who === 'user' ? 'user' : 'assistant';
+    const content = m.text;
+    if (role === 'assistant' && (content === '' || content === 'Thinking…')) continue;
+    out.push({ role, content });
+  }
+  return out;
 }
