@@ -15,7 +15,7 @@
     <div id="app">
       <aside class="sidebar">
         <div class="sidebar__header">
-          <div class="brand">
+          <div class="brand" id="brandHome" role="button" tabindex="0" title="Go to welcome chat">
             <div class="avatar" aria-hidden="true">JZ</div>
             <div class="brand__text">
               <div class="brand__title">Jerry Zhao</div>
@@ -23,6 +23,7 @@
             </div>
           </div>
           <button class="new-chat" id="newChatBtn" title="New chat">+ New Chat</button>
+          <button class="clear-chats" id="clearChatsBtn" title="Clear all chats">Clear Chats</button>
         </div>
         <div class="sidebar__section">
           <div class="section__title">Chats</div>
@@ -32,6 +33,7 @@
         </div>
         <div class="sidebar__footer">
           <a class="sidebar__link" href="https://github.com/jerryz123" target="_blank" rel="noopener">GitHub</a>
+          <a class="sidebar__link" href="https://www.linkedin.com/in/jerryzhao1" target="_blank" rel="noopener">LinkedIn</a>
           <a class="sidebar__link" href="mailto:jerry@openai.com">Email</a>
         </div>
       </aside>
@@ -43,6 +45,7 @@
 
         <section class="content" id="content">
           <div class="welcome">
+            <img src="assets/headshot.jpg" alt="Headshot of Jerry Zhao" class="headshot" />
             <h1>Hi, I’m Jerry.</h1>
             <p>Type a prompt below to get started.</p>
             <div class="suggestions">
@@ -61,12 +64,17 @@
               <textarea id="prompt" name="prompt" rows="1" placeholder="Message Jerry's site…" aria-label="Type your message"></textarea>
               <button id="sendBtn" class="send" type="submit" title="Send" aria-label="Send">➤</button>
             </div>
-            <div class="hint">Messages reset on refresh. This is a static demo.</div>
+            <div class="hint">Messages are saved locally in your browser. Use Clear Chats to reset.</div>
           </form>
         </footer>
       </main>
     </div>
 
+    <script src="config.js"></script>
+    <!-- Markdown + sanitization libs (CDN) -->
+    <!-- Note: omit SRI to avoid mismatch-blocking; self-host if you prefer stricter control. -->
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
     <script src="app.js"></script>
   </body>
   </html>
