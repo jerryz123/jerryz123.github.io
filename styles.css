@@ -61,7 +61,7 @@ body {
 .sidebar__link:hover { color: var(--text); }
 
 /* Main */
-.main { display: grid; grid-template-rows: auto 1fr auto; min-height: 100%; }
+.main { display: grid; grid-template-rows: 1fr auto; min-height: 100%; }
 .topbar { display:flex; align-items:center; gap:12px; padding: 14px 18px; border-bottom: 1px solid var(--border); background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent); backdrop-filter: blur(6px); }
 .topbar__title { font-weight: 600; }
 .theme-toggle { background: transparent; border: 1px solid var(--border); color: var(--text); border-radius: 10px; padding: 8px 10px; cursor: pointer; }
@@ -100,6 +100,11 @@ body {
 .msg .who { width: 36px; height: 36px; border-radius: 9px; display:flex; align-items:center; justify-content:center; font-size: 14px; }
 .msg.user .who { background: #21324a; color: #9fc1ff; }
 .msg.assistant .who { background: #1a2c27; color: #78e2be; }
+.msg.assistant .bubble.thinking { white-space: normal; }
+.msg.assistant .bubble.thinking .dot { display:inline-block; width: 0.5em; text-align:center; opacity: 0.2; animation: dotblink 1.2s infinite; }
+.msg.assistant .bubble.thinking .dot:nth-child(2) { animation-delay: .2s; }
+.msg.assistant .bubble.thinking .dot:nth-child(3) { animation-delay: .4s; }
+@keyframes dotblink { 0%, 20% { opacity: .2; } 50% { opacity: 1; } 100% { opacity: .2; } }
 
 @keyframes pop {
   from { transform: translateY(2px); opacity: .0; }

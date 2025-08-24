@@ -42,6 +42,14 @@ export default {
       const system = typeof env.SYSTEM_PROMPT === 'string' ? env.SYSTEM_PROMPT : undefined;
       const model = (body.model || env.MODEL || 'gpt-4o-mini') + '';
       const stream = url.searchParams.get('stream') === '1' || body.stream === true;
+      // Optional reasoning control (Responses API only)
+      const reasoningEffort = (body?.reasoning && typeof body.reasoning.effort === 'string')
+        ? body.reasoning.effort
+        : (env.REASONING_EFFORT || 'minimal');
+      // Optional text controls (Responses API only)
+      const textOptions = (body && typeof body.text === 'object' && body.text)
+        ? body.text
+        : (env.TEXT_VERBOSITY ? { verbosity: env.TEXT_VERBOSITY } : undefined);
 
       if (!messages.length && !system) {
         return json({ error: 'No messages provided' }, cors, 400);
@@ -66,17 +74,44 @@ export default {
           tools: [ { type: 'file_search', vector_store_ids: [vectorId] } ],
           stream,
         };
-        const upstream = await fetch(`${base}/v1/responses`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${env.OPENAI_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(respPayload),
-        });
+        // Only include reasoning for models/paths that support it (Responses API)
+        if (reasoningEffort) respPayload.reasoning = { effort: reasoningEffort };
+        if (textOptions) respPayload.text = textOptions;
+        // Send with graceful downgrade: if model rejects reasoning/text controls, retry without them
+        async function sendResponses(payload) {
+          return fetch(`${base}/v1/responses`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${env.OPENAI_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+          });
+        }
+        let upstream = await sendResponses(respPayload);
         if (!upstream.ok) {
           const errText = await upstream.text().catch(() => '');
-          return json({ error: 'OpenAI error', details: errText }, cors, 502);
+          try {
+            const errObj = JSON.parse(errText);
+            const msg = errObj?.error?.message || '';
+            const param = errObj?.error?.param || '';
+            const unsupportedReasoning = /reasoning/i.test(msg) || String(param).startsWith('reasoning');
+            const unsupportedText = /text\.?verbosity/i.test(msg) || String(param).startsWith('text');
+            if (unsupportedReasoning || unsupportedText) {
+              const downgraded = { ...respPayload };
+              delete downgraded.reasoning;
+              delete downgraded.text;
+              upstream = await sendResponses(downgraded);
+            } else {
+              return json({ error: 'OpenAI error', details: errText }, cors, 502);
+            }
+          } catch {
+            return json({ error: 'OpenAI error', details: errText }, cors, 502);
+          }
+          if (!upstream.ok) {
+            const err2 = await upstream.text().catch(() => '');
+            return json({ error: 'OpenAI error', details: err2 }, cors, 502);
+          }
         }
         if (stream) {
           // Transform Responses SSE → chat.completions-style SSE for frontend compatibility
