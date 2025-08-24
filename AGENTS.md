@@ -6,7 +6,7 @@ Use this doc to quickly understand structure, behaviors, and how to extend or de
 
 ## Overview
 - Frontend: Pure static HTML/CSS/JS served by GitHub Pages from repo root.
-- Backend: Cloudflare Worker (in `backend/cloudflare-worker`) that holds the OpenAI key, exposes `/chat`, and handles CORS and optional streaming.
+- Backend: Cloudflare Worker (in `backend/cloudflare-worker`) that holds the OpenAI key, exposes `/chat`, and handles CORS and streaming.
 - Persistence: Chats and a lightweight reply cache are stored in `localStorage`.
 - Landing flow: The site starts with no active chat; sending a message creates a new chat and activates it. “New Chat” and the brand return to the landing page with no active chat.
 
@@ -19,8 +19,10 @@ Use this doc to quickly understand structure, behaviors, and how to extend or de
 - `.nojekyll` — Ensures GitHub Pages serves files as-is.
 - `backend/cloudflare-worker/` — Cloudflare Worker scaffold.
   - `wrangler.toml` — Worker configuration and env vars.
-  - `src/worker.js` — Worker code: `POST /chat`, `GET /health`, CORS, optional SSE passthrough.
-  - `README.md` — Setup and deploy instructions for the Worker.
+- `src/worker.js` — Worker code: `POST /chat`, `GET /health`, CORS, SSE streaming; optional retrieval via Responses API.
+- `README.md` — Setup and deploy instructions for the Worker.
+- `knowledge/` — Public text/Markdown sources used for retrieval (synced to OpenAI Vector Store; respects `.gitignore`).
+- `backend/tools/` — Vector store scripts: `sync-vector-store.mjs`, `list-vector-store.mjs`.
 
 ## Frontend Details
 Key behaviors in `app.js`:
@@ -31,8 +33,10 @@ Key behaviors in `app.js`:
 - Sidebar: Chat titles are derived from the first user message (truncated). Buttons left-aligned, ellipsis overflow, and sized to stay within the column.
 - Welcome visibility: The landing section (photo, greeting, suggestions) is hidden whenever there is an active chat; shown otherwise.
 - Markdown: Assistant messages are rendered via `marked` + sanitized by `DOMPurify`. Libraries are loaded from CDN in `index.html`.
+- System prompt is server-controlled in the Worker (`SYSTEM_PROMPT` and `PROMPT_VERSION` in `wrangler.toml`). The frontend no longer sends a `system` field. Prompt v2 rejects unrelated requests and applies the “Absolute Diagnostic Mode” rules.
+ - Retrieval: If `VECTOR_STORE_ID` is set, the Worker calls OpenAI Responses API with `tools: [{ type: "file_search", vector_store_ids: [VECTOR_STORE_ID] }]` and streams results; events are transformed into Chat Completions–style deltas for the frontend.
 - Persistence: Chats are stored in `localStorage` under `jz_site_chats_v1`.
-- Reply cache: Stores assistant replies keyed by a hash of the conversation up to the last user message (`jz_site_reply_cache_v1`). Prevents duplicate backend calls on refresh/resend.
+- Reply cache: Stores assistant replies keyed by a hash of the conversation up to the last user message (`jz_site_reply_cache_v2`). Prevents duplicate backend calls on refresh/resend.
 - Keyboard: Enter submits, Shift+Enter inserts newline.
 
 Configuration in `config.js`:
@@ -45,7 +49,7 @@ Markdown libraries in `index.html`:
 Location: `backend/cloudflare-worker`
 
 What it does:
-- `POST /chat` forwards a Chat Completions request to OpenAI using the server-side `OPENAI_API_KEY`. Supports optional streaming passthrough when `?stream=1` or body `stream: true` (frontend currently uses non-streaming).
+- `POST /chat` forwards a Chat Completions request to OpenAI using the server-side `OPENAI_API_KEY`. It prepends the server-owned system prompt and streams tokens when `?stream=1` (frontend uses this by default).
 - `GET /health` returns `{ ok: true }` for sanity checks.
 - CORS: Allows origins in `ALLOWED_ORIGINS` (comma-separated). Handles `OPTIONS` preflight.
 
@@ -56,6 +60,8 @@ Setup (summary; see the README in that folder for details):
 4) Edit `wrangler.toml`:
    - `MODEL` (use a fine-tuned model id if available)
    - `ALLOWED_ORIGINS` (include `https://<user>.github.io` and any custom domain)
+   - `SYSTEM_PROMPT`, `PROMPT_VERSION` (server-owned prompt + version)
+   - Rate limiting: ensure the Durable Object migration uses `new_sqlite_classes` on free plan; tune `RL_MAX`, `RL_WINDOW_MS`.
 5) `wrangler deploy`
 6) Copy the `*.workers.dev` URL and set it in `config.js` as `window.API_BASE`.
 
@@ -74,19 +80,18 @@ Notes:
 - Sidebar shows chats; long titles are truncated with ellipsis.
 - Click a chat to switch; click “New Chat” or the brand to return to landing (no active chat).
 - “Clear Chats” wipes history and the reply cache.
-- Assistant responses render Markdown safely.
+- Assistant responses render Markdown safely and stream token-by-token.
 
 ## Known Trade-offs / TODOs
-- Streaming: Worker supports passthrough SSE, but frontend is currently non-streaming. Implement a stream reader in `app.js` if token-by-token output is desired.
-- Abuse controls: Consider Cloudflare Turnstile verification and/or per-IP rate limiting on the Worker.
+- Abuse controls: Consider Cloudflare Turnstile verification in addition to the per-IP rate limiter.
 - Library sourcing: Consider vendoring `marked` and `DOMPurify` to avoid runtime CDN dependency.
 - Error UX: Errors are shown inside the last assistant bubble; could be promoted to a toast.
 - Mobile polish: Sidebar collapse is basic; could add slide-in behavior.
-- 404 / README: Consider adding `404.html` and a top-level `README.md` for visitors.
+- 404: Consider adding `404.html`.
 
 ## Storage Keys
 - Chats: `localStorage['jz_site_chats_v1']`
-- Reply cache: `localStorage['jz_site_reply_cache_v1']`
+- Reply cache: `localStorage['jz_site_reply_cache_v2']`
 
 ## Quick Commands
 - Local preview: `python3 -m http.server 8000`
@@ -104,4 +109,3 @@ Notes:
 
 ---
 This doc should be enough context for another agent (or future you) to resume work quickly, deploy the backend, wire the frontend, and implement enhancements like streaming, rate limiting, or offline-friendly behavior.
-

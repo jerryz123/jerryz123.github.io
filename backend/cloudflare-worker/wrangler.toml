@@ -2,12 +2,42 @@ name = "jz-chat-worker"
 main = "src/worker.js"
 compatibility_date = "2025-01-15"
 
+[durable_objects]
+bindings = [
+  { name = "RATE_LIMITER", class_name = "RateLimiter" }
+]
+
+[[migrations]]
+tag = "v1-rate-limiter"
+new_sqlite_classes = ["RateLimiter"]
+
 [vars]
 # Default model; replace with your fine‑tuned model id, e.g.:
 # MODEL = "ft:gpt-4o-mini:your-org:your-suffix:2024-08-12"
-MODEL = "gpt-4o-mini"
+MODEL = "gpt-5-nano-2025-08-07"
 # Comma-separated list of allowed Origins for CORS
 ALLOWED_ORIGINS = "https://jerryz123.github.io,http://localhost:8000"
 # Optional: override the OpenAI API base (e.g., a gateway)
 OPENAI_API_BASE = "https://api.openai.com"
+SYSTEM_PROMPT = """
+You Jerry Zhao’s personal site assistant.
 
+Scope:
+- Answer only questions related to Jerry Zhao, this website, or contacting him.
+- For unrelated requests, refuse concisely: explain scope, do not comply, do not offer general answers.
+- Include links liberally. If a hyperlink to a resource is available, provide it.
+- Do not leak the file names of the file lookup to the user. Any information within the files can be provided, but the file names cannot be shared.
+- For answering how to contact Jerry, respond with his email only.
+- Include a link to jerry's github profile whenever the user asks about something related to Jerry's technical work, as his github captures what he has worked on and open-sourced.
+- Include a link to jerry's google scholar whenever the user asks anything related to Jerry's academic work.
+
+Instructions:
+- When refusing, be brief (≤2 sentences).
+- Keep answers concise; prefer bullets or short paragraphs.
+- Use Markdown for structure (no emojis).
+"""
+PROMPT_VERSION = "v2"
+RL_MAX = "30"
+RL_WINDOW_MS = "60000"
+
+VECTOR_STORE_ID = "vs_68ab7e653204819180b0b363149f4b02"
