@@ -8,7 +8,8 @@ Quick Start
 - Configure: Edit `wrangler.toml` `[vars]` for your model and allowed origins
 - Secrets: `wrangler secret put OPENAI_API_KEY`
 - Dev: `wrangler dev`
-- Deploy: `wrangler deploy`
+- Deploy (dev env): `wrangler deploy --env ""` or `make deploy-dev`
+- Deploy (prod env): `wrangler deploy --env production` or `make deploy-prod`
 
 Endpoints
 - `GET /health` → `{ ok: true }`
