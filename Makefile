@@ -10,12 +10,14 @@ SYNC_SCRIPT := backend/tools/sync-vector-store.mjs
 # - VECTOR_STORE_NAME: name of the vector store to create/use (default: jerry-site-knowledge)
 # - OPENAI_DELETE_FILES=1: when pruning, also delete detached OpenAI File objects (defaults to not deleting)
 
-.PHONY: help sync-vector-store deploy sync-deploy
+.PHONY: help sync-vector-store deploy deploy-dev deploy-prod sync-deploy
 
-help:
+	help:
 	@echo "Targets:"
 	@echo "  sync-vector-store  Upload knowledge/ files to OpenAI and set VECTOR_STORE_ID in wrangler.toml"
-	@echo "  deploy             Deploy Cloudflare Worker (wrangler deploy)"
+	@echo "  deploy             Deploy Cloudflare Worker (default env: dev)"
+	@echo "  deploy-dev         Deploy with dev CORS (includes localhost)"
+	@echo "  deploy-prod        Deploy with prod CORS (no localhost)"
 	@echo "  sync-deploy        Run sync-vector-store then deploy"
 	@echo "  list-vector-store  Show files attached to the configured VECTOR_STORE_ID"
 	@echo ""
@@ -30,6 +32,12 @@ sync-vector-store:
 
 deploy:
 	cd $(WORKER_DIR) && wrangler deploy
+
+deploy-dev:
+	cd $(WORKER_DIR) && wrangler deploy
+
+deploy-prod:
+	cd $(WORKER_DIR) && wrangler deploy --env production
 
 sync-deploy: sync-vector-store deploy
 
