@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Jerry Zhao — About</title>
+    <meta name="description" content="About Jerry Zhao — background, expertise, projects, and links." />
+    <meta name="robots" content="index,follow" />
+    <link rel="canonical" href="https://www.jzhao.me/about/" />
+    <meta property="og:type" content="profile" />
+    <meta property="og:title" content="Jerry Zhao — About" />
+    <meta property="og:description" content="Background, expertise, and projects by Jerry Zhao." />
+    <meta property="og:url" content="https://www.jzhao.me/about/" />
+    <meta property="og:image" content="https://www.jzhao.me/assets/headshot.jpg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Jerry Zhao — About" />
+    <meta name="twitter:description" content="Background, expertise, and projects by Jerry Zhao." />
+    <meta name="twitter:image" content="https://www.jzhao.me/assets/headshot.jpg" />
+    <link rel="stylesheet" href="../styles.css" />
+    <style>
+      body { max-width: 780px; margin: 40px auto; padding: 0 16px; }
+      header a { color: var(--muted); text-decoration: none; }
+      header a:hover { color: var(--text); }
+      main h1 { margin-top: 0; }
+      main h2 { margin-top: 1.4em; }
+      ul { padding-left: 1.2em; }
+      .meta { color: var(--muted); font-size: 14px; }
+    </style>
+  </head>
+  <body>
+    <header class="meta"><a href="/">← Back to site</a></header>
+    <main>
+      <h1>Jerry Zhao — About Me</h1>
+
+      <h2>Current Role</h2>
+      <ul>
+        <li>Computer Architect at OpenAI.</li>
+        <li>Based in Oakland, California.</li>
+        <li>At OpenAI, I work on hardware design.</li>
+      </ul>
+
+      <h2>Education</h2>
+      <ul>
+        <li>Ph.D. student at UC Berkeley (2019–2025) in the SLICE, ADEPT, and ASPIRE labs.</li>
+        <li>Advisors: Krste Asanović and Borivoje Nikolić.</li>
+        <li>B.S. in Electrical Engineering and Computer Science (2019).</li>
+      </ul>
+
+      <h2>Research Focus</h2>
+      <ul>
+        <li>Computer architecture and microarchitecture.</li>
+        <li>Performance modeling, accelerator design, and hardware design methodologies.</li>
+        <li>Involved in numerous tapeouts.</li>
+      </ul>
+
+      <h2>Industry Experience</h2>
+      <ul>
+        <li>Interned at Apple in 2021 and 2022:
+          <ul>
+            <li>Platform Architecture CPU team.</li>
+            <li>Vector and Numerics team.</li>
+          </ul>
+        </li>
+      </ul>
+
+      <h2>Technical Expertise</h2>
+      <ul>
+        <li>CPU microarchitecture, vector microarchitecture, AI microarchitecture.</li>
+        <li>RTL design, simulation, performance modeling.</li>
+        <li>Hardware design methodology, VLSI flows.</li>
+        <li>RISC‑V, Chisel, Rust.</li>
+        <li>Network‑on‑chip design, SoC design.</li>
+      </ul>
+
+      <h2>Links</h2>
+      <ul>
+        <li>Website: <a href="https://www.jzhao.me">https://www.jzhao.me</a></li>
+        <li>LinkedIn: <a href="https://www.linkedin.com/in/jerryzhao1/">jerryzhao1</a></li>
+        <li>GitHub: <a href="https://github.com/jerryz123">jerryz123</a></li>
+        <li>Email: <a href="mailto:jerry@openai.com">jerry@openai.com</a></li>
+        <li>Google Scholar: <a href="https://scholar.google.com/citations?user=y7PdKXsAAAAJ">Jerry’s Google Scholar</a></li>
+      </ul>
+
+      <h2>Project Overview</h2>
+      <p>I have contributed to a wide range of architecture and hardware projects. My work includes deep superscalar out‑of‑order cores (BOOM, SonicBOOM), machine learning accelerators (GEMMINI), vector units (Saturn), interconnects (Constellation), and SoC design frameworks (Chipyard). I am deeply familiar with DSL‑based hardware design flows, performance modeling, architecture design, and accelerator ISA design.</p>
+
+      <h3>SonicBOOM (Lead developer)</h3>
+      <ul>
+        <li>Repo: <a href="https://github.com/riscv-boom/riscv-boom">riscv-boom/riscv-boom</a></li>
+        <li>Description: Extends the Berkeley Out‑of‑Order Machine (BOOM) to significantly higher performance by pushing aggressive superscalar out‑of‑order techniques into an open‑source RISC‑V core.</li>
+        <li>Focus areas: Innovations in fetch, rename, scheduling, and execution to sustain wide‑issue pipelines and deep speculation; modular, extensible Chisel‑based design.</li>
+        <li>Key improvements: Enhanced branch prediction; wider instruction issue and commit; refined load–store queues; scalable instruction scheduling and register renaming structures.</li>
+        <li>Notable: At one point the fastest RISC‑V processor; exposed Linux bugs hidden by deep speculation; first open‑source implementation of the industry‑standard TAGE branch predictor.</li>
+      </ul>
+
+      <h3>GEMMINI (RTL developer)</h3>
+      <ul>
+        <li>Repo: <a href="https://github.com/ucb-bar/gemmini">ucb-bar/gemmini</a></li>
+        <li>Description: Parameterizable open‑source systolic‑array accelerator for dense linear algebra and ML workloads, part of the RISC‑V ecosystem.</li>
+        <li>Contributions: Physical‑design friendly features, including banking of the local memory system.</li>
+      </ul>
+
+      <h3>Saturn (Lead developer)</h3>
+      <ul>
+        <li>Repo: <a href="https://github.com/ucb-bar/saturn-vectors">ucb-bar/saturn-vectors</a></li>
+        <li>Description: Research vector processor for AI and HPC workloads; fully RVV 1.0 compliant with support for virtual memory and precise faults.</li>
+        <li>Microarchitecture: Out‑of‑order execution, vector chaining, and load/store decoupling.</li>
+      </ul>
+
+      <h3>Constellation (Lead developer)</h3>
+      <ul>
+        <li>Repo: <a href="https://github.com/ucb-bar/constellation">ucb-bar/constellation</a></li>
+        <li>Description: Open‑source network‑on‑chip generator for scalable on‑chip interconnects in RISC‑V SoCs.</li>
+      </ul>
+
+      <h3>Chipyard (Lead developer)</h3>
+      <ul>
+        <li>Repo: <a href="https://github.com/ucb-bar/chipyard">ucb-bar/chipyard</a></li>
+        <li>Description: Open‑source SoC design framework integrating cores, accelerators, memory systems, and I/O with RTL simulation, FPGA prototyping, and ASIC flows.</li>
+      </ul>
+
+      <h2>System Snapshot</h2>
+      <ul>
+        <li>OS: macOS 15.6 (24G84) arm64</li>
+        <li>Host: Mac15,6 • Kernel: 24.6.0</li>
+        <li>Uptime: 3 days, 18 hours, 44 mins</li>
+        <li>Packages: 18 (brew) • Shell: bash 3.2.57</li>
+        <li>Resolution: 1800x1169 • DE: Aqua • WM: Quartz Compositor</li>
+        <li>CPU: Apple M3 Pro • GPU: Apple M3 Pro • Memory: 5003 MiB / 36864 MiB</li>
+      </ul>
+    </main>
+  </body>
+  </html>
+
