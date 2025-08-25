@@ -16,7 +16,7 @@ new_sqlite_classes = ["RateLimiter"]
 # MODEL = "ft:gpt-4o-mini:your-org:your-suffix:2024-08-12"
 MODEL = "gpt-5-mini-2025-08-07"
 # Comma-separated list of allowed Origins for CORS
-ALLOWED_ORIGINS = "https://jerryz123.github.io,http://localhost:8000"
+ALLOWED_ORIGINS = "https://jerryz123.github.io,https://jzhao.me,https://www.jzhao.me,http://localhost:8000"
 # Optional: override the OpenAI API base (e.g., a gateway)
 OPENAI_API_BASE = "https://api.openai.com"
 REASONING_EFFORT = "low"
