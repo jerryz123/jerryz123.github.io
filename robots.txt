@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Update this if you serve on a different canonical domain
+Sitemap: https://www.jzhao.me/sitemap.xml
