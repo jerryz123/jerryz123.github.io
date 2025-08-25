@@ -3,13 +3,43 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Home • Jerry Zhao</title>
-    <meta name="description" content="Personal site of Jerry Zhao" />
+    <title>Jerry Zhao — Personal Site</title>
+    <meta name="description" content="Jerry Zhao — computer architect. Chat to learn about his work, publications, and how to contact him." />
+    <meta name="robots" content="index,follow" />
+    <link rel="canonical" href="https://www.jzhao.me/" />
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Jerry Zhao — Personal Site" />
+    <meta property="og:description" content="Learn about Jerry Zhao’s work and how to contact him." />
+    <meta property="og:url" content="https://www.jzhao.me/" />
+    <meta property="og:site_name" content="Jerry Zhao" />
+    <meta property="og:image" content="https://www.jzhao.me/assets/headshot.jpg" />
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Jerry Zhao — Personal Site" />
+    <meta name="twitter:description" content="Learn about Jerry Zhao’s work and how to contact him." />
+    <meta name="twitter:image" content="https://www.jzhao.me/assets/headshot.jpg" />
     <meta name="theme-color" content="#0e0f13" media="(prefers-color-scheme: dark)" />
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='46' fill='%2326a17b'/%3E%3Ctext x='50' y='58' font-size='44' text-anchor='middle' fill='white' font-family='system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif' %3EJ%3C/text%3E%3C/svg%3E" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="styles.css" />
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Person",
+      "name": "Jerry Zhao",
+      "url": "https://www.jzhao.me/",
+      "image": "https://www.jzhao.me/assets/headshot.jpg",
+      "email": "mailto:jerry@openai.com",
+      "sameAs": [
+        "https://github.com/jerryz123",
+        "https://www.linkedin.com/in/jerryzhao1/",
+        "https://scholar.google.com/citations?user=y7PdKXsAAAAJ"
+      ]
+    }
+    </script>
   </head>
   <body>
     <div id="app">
@@ -34,6 +64,7 @@
         <div class="sidebar__footer">
           <a class="sidebar__link" href="https://github.com/jerryz123" target="_blank" rel="noopener">GitHub</a>
           <a class="sidebar__link" href="https://www.linkedin.com/in/jerryzhao1" target="_blank" rel="noopener">LinkedIn</a>
+          <a class="sidebar__link" href="https://scholar.google.com/citations?user=y7PdKXsAAAAJ" target="_blank" rel="noopener">Scholar</a>
           <a class="sidebar__link" href="mailto:jerry@openai.com">Email</a>
         </div>
       </aside>
