@@ -42,7 +42,9 @@ A Cloudflare Worker keeps your OpenAI API key private, adds CORS/streaming, and 
   3) `wrangler secret put OPENAI_API_KEY`
   4) Edit `wrangler.toml` (`MODEL`, `ALLOWED_ORIGINS`, `SYSTEM_PROMPT`, `PROMPT_VERSION`)
   5) Ensure the Durable Object migration uses `new_sqlite_classes` (free plan) and tune `RL_MAX`, `RL_WINDOW_MS` for rate limiting
-  6) `wrangler deploy`
+  6) Deploy the Worker
+     - Dev (top-level env): `wrangler deploy --env ""` or `make deploy-dev`
+     - Prod (no localhost CORS): `wrangler deploy --env production` or `make deploy-prod`
   7) Copy the `*.workers.dev` URL
 
 See the detailed guide in `backend/cloudflare-worker/README.md`.
@@ -64,13 +66,13 @@ UI options and persistence
 - Sync them to an OpenAI Vector Store and deploy:
 
 ```bash
-OPENAI_API_KEY=sk-... make sync-deploy
+OPENAI_API_KEY=sk-... make sync-deploy-dev
 ```
 
 - This will:
   - Create/refresh a Vector Store and attach files in `knowledge/` (respects `.gitignore`).
   - Write the resulting `VECTOR_STORE_ID` to `backend/cloudflare-worker/wrangler.toml`.
-  - Deploy the Worker.
+  - Deploy the Worker (use `make deploy-dev` or `make deploy-prod`).
 
 - Verification:
 ```bash

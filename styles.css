@@ -75,7 +75,7 @@ body {
 .welcome h1 { margin: 0 0 6px; font-size: 36px; letter-spacing: -0.02em; }
 .welcome p { margin: 0 0 18px; color: var(--muted); }
 .suggestions { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; margin: 0 auto; max-width: 560px; }
-.suggestion { padding: 12px 14px; border-radius: 14px; border: 1px solid var(--border); background: var(--panel); color: var(--text); cursor: pointer; text-align:left; box-shadow: 0 6px 20px rgba(0,0,0,.15); transition: transform .06s ease, border-color .15s ease; }
+.suggestion { padding: 12px 14px; border-radius: 14px; border: 1px solid var(--border); background: var(--panel); color: var(--text); cursor: pointer; text-align:left; box-shadow: 0 6px 20px rgba(0,0,0,.15); transition: transform .06s ease, border-color .15s ease; font-size: 17px; line-height: 1.3; }
 .suggestion:hover { border-color: var(--accent); box-shadow: 0 6px 22px rgba(0,0,0,.2), 0 0 0 2px var(--accent-weak) inset; transform: translateY(-1px); }
 
 .messages { display: grid; gap: 14px; margin: 24px auto 100px; max-width: 760px; }
