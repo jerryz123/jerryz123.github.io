@@ -1,4 +1,5 @@
 SHELL := /bin/bash
+.DEFAULT_GOAL := help
 
 # Paths
 WORKER_DIR := backend/cloudflare-worker
@@ -12,7 +13,7 @@ SYNC_SCRIPT := backend/tools/sync-vector-store.mjs
 
 .PHONY: help sync-vector-store deploy-dev deploy-prod sync-deploy-dev sync-deploy-prod
 
-	help:
+help:
 	@echo "Targets:"
 	@echo "  sync-vector-store  Upload knowledge/ files to OpenAI and set VECTOR_STORE_ID in wrangler.toml"
 	@echo "  deploy-dev         Deploy dev env (explicit top-level env)"
