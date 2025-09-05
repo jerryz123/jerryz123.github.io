@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Sync local knowledge/ files into an OpenAI Vector Store and write VECTOR_STORE_ID to wrangler.toml
+// Sync local database/ files into an OpenAI Vector Store and write VECTOR_STORE_ID to wrangler.toml
 // Usage: OPENAI_API_KEY=... node backend/tools/sync-vector-store.mjs
 
 import fs from 'node:fs';
@@ -13,13 +13,13 @@ if (!OPENAI_API_KEY) {
 }
 
 const ROOT = path.resolve(process.cwd());
-const KNOWLEDGE_DIR = path.join(ROOT, 'knowledge');
+const KNOWLEDGE_DIR = path.join(ROOT, 'database');
 const WRANGLER_TOML = path.join(ROOT, 'backend', 'cloudflare-worker', 'wrangler.toml');
 const VECTOR_STORE_NAME = process.env.VECTOR_STORE_NAME || 'jerry-site-knowledge';
 
 async function main() {
   if (!fs.existsSync(KNOWLEDGE_DIR)) {
-    console.error(`ERROR: knowledge/ directory not found at ${KNOWLEDGE_DIR}`);
+    console.error(`ERROR: database/ directory not found at ${KNOWLEDGE_DIR}`);
     process.exit(1);
   }
   let files = walk(KNOWLEDGE_DIR)
@@ -27,7 +27,7 @@ async function main() {
     .filter(f => path.basename(f) !== '.gitkeep');
   files = files.filter(f => !isGitIgnored(f));
   if (!files.length) {
-    console.warn('No .md/.txt files found in knowledge/. Nothing to upload.');
+    console.warn('No .md/.txt files found in database/. Nothing to upload.');
   }
 
   // Create or fetch vector store
