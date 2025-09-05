@@ -248,6 +248,9 @@
       // Ensure landing suggestions are present
       renderSuggestionsFromPools();
       renderStyleSuggestions();
+    } else {
+      // Leaving landing: clear any active style
+      if (selectedStyle) clearSelectedStyle();
     }
     if (contentSection) contentSection.classList.toggle('hide-welcome', started);
     queueMicrotask(() => maybeScrollBottom(true));
@@ -264,7 +267,9 @@
     if (!baseText) return;
     let text = baseText;
     if (selectedStyle) {
-      text = `${baseText} in the style of ${selectedStyle}`;
+      text = `${baseText} In the style of ${selectedStyle}`;
+      // Clear active style once leaving landing via send
+      clearSelectedStyle();
     }
 
     let chat = chats.find(c => c.id === currentId);
@@ -475,6 +480,7 @@
     currentId = null;
     try { localStorage.setItem(CURRENT_KEY, ''); } catch {}
     // Re-roll the suggestions when returning to the landing view
+    clearSelectedStyle();
     renderSuggestionsFromPools();
     renderStyleSuggestions();
     renderAll();
@@ -546,6 +552,8 @@
 
   // Init
   try { if (window.marked) window.marked.setOptions({ gfm: true, breaks: false }); } catch {}
+  // Clear any stale style on load or bfcache restore
+  window.addEventListener('pageshow', () => clearSelectedStyle());
   renderSuggestionsFromPools();
   renderStyleSuggestions();
   autosize();
