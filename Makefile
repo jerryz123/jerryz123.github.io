@@ -15,11 +15,11 @@ SYNC_SCRIPT := backend/tools/sync-vector-store.mjs
 
 help:
 	@echo "Targets:"
-	@echo "  sync-vector-store  Upload knowledge/ files to OpenAI and set VECTOR_STORE_ID in wrangler.toml"
+	@echo "  sync-vector-store  Upload database/ files to OpenAI and set VECTOR_STORE_ID in wrangler.toml"
 	@echo "  deploy-dev         Deploy dev env (explicit top-level env)"
 	@echo "  deploy-prod        Deploy prod env (no localhost CORS)"
-	@echo "  sync-deploy-dev    Sync knowledge then deploy dev env"
-	@echo "  sync-deploy-prod   Sync knowledge then deploy prod env"
+	@echo "  sync-deploy-dev    Sync database then deploy dev env"
+	@echo "  sync-deploy-prod   Sync database then deploy prod env"
 	@echo "  list-vector-store  Show files attached to the configured VECTOR_STORE_ID"
 	@echo ""
 	@echo "Env vars:"
