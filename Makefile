@@ -11,19 +11,19 @@ SYNC_SCRIPT := backend/tools/sync-vector-store.mjs
 # - VECTOR_STORE_NAME: name of the vector store to create/use (default: jerry-site-knowledge)
 # - OPENAI_DELETE_FILES=1: when pruning, also delete detached OpenAI File objects (defaults to not deleting)
 
-.PHONY: help sync-vector-store deploy sync-deploy
+.PHONY: help sync-vector-store deploy sync-deploy list-vector-store
 
 help:
-	@echo "Targets:"
-    @echo "  sync-vector-store  Upload database/ files to OpenAI and set VECTOR_STORE_ID in wrangler.toml"
-    @echo "  deploy            Deploy the Cloudflare Worker"
-    @echo "  sync-deploy       Sync database then deploy"
-	@echo "  list-vector-store  Show files attached to the configured VECTOR_STORE_ID"
-	@echo ""
-	@echo "Env vars:"
-	@echo "  OPENAI_API_KEY        Required for sync/list commands"
-	@echo "  VECTOR_STORE_NAME     Optional, defaults to jerry-site-knowledge"
-	@echo "  OPENAI_DELETE_FILES=1 Also delete detached OpenAI File objects during pruning"
+		@echo "Targets:"
+		@echo "  sync-vector-store  Upload database/ files to OpenAI and set VECTOR_STORE_ID in wrangler.toml"
+		@echo "  deploy            Deploy the Cloudflare Worker"
+		@echo "  sync-deploy       Sync database then deploy"
+		@echo "  list-vector-store  Show files attached to the configured VECTOR_STORE_ID"
+		@echo ""
+		@echo "Env vars:"
+		@echo "  OPENAI_API_KEY        Required for sync/list commands"
+		@echo "  VECTOR_STORE_NAME     Optional, defaults to jerry-site-knowledge"
+		@echo "  OPENAI_DELETE_FILES=1 Also delete detached OpenAI File objects during pruning"
 
 sync-vector-store:
 	@if [[ -z "$$OPENAI_API_KEY" ]]; then echo "OPENAI_API_KEY is required"; exit 1; fi

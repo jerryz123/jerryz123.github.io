@@ -23,11 +23,11 @@ async function main() {
     process.exit(1);
   }
   let files = walk(KNOWLEDGE_DIR)
-    .filter(f => /\.(md|markdown|txt)$/i.test(f))
+    .filter(f => /\.(md|markdown|txt|pdf)$/i.test(f))
     .filter(f => path.basename(f) !== '.gitkeep');
   files = files.filter(f => !isGitIgnored(f));
   if (!files.length) {
-    console.warn('No .md/.txt files found in database/. Nothing to upload.');
+    console.warn('No .md/.txt/.pdf files found in database/. Nothing to upload.');
   }
 
   // Create or fetch vector store
@@ -141,7 +141,12 @@ async function uploadFile(absPath, displayName) {
   const buf = fs.readFileSync(absPath);
   const form = new FormData();
   form.append('purpose', 'assistants');
-  form.append('file', new Blob([buf], { type: 'text/plain' }), displayName);
+  // Choose a reasonable MIME type based on extension
+  const ext = path.extname(displayName).toLowerCase();
+  let mime = 'text/plain';
+  if (ext === '.pdf') mime = 'application/pdf';
+  else if (ext === '.md' || ext === '.markdown') mime = 'text/markdown';
+  form.append('file', new Blob([buf], { type: mime }), displayName);
   const res = await fetch('https://api.openai.com/v1/files', {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}` },

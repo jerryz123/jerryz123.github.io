@@ -125,12 +125,52 @@ textarea#prompt { resize: none; flex: 1; border: 0; outline: none; color: var(--
 /* Responsive */
 @media (max-width: 1000px) {
   #app { grid-template-columns: 72px 1fr; }
-  .brand__text, .section__title, .sidebar__footer { display: none; }
+  .brand__text, .section__title { display: none; }
   .new-chat { padding: 10px; font-size: 0; }
   .new-chat::after { content: "+"; font-size: 18px; }
   .chat-item__title { display: none; }
   .clear-chats { padding: 10px; font-size: 0; }
   .clear-chats::after { content: "🗑"; font-size: 18px; }
+  /* Show footer links as buttons similar to clear-chats */
+  .sidebar__footer { display: grid; grid-template-columns: 1fr; gap: 8px; padding: 10px; }
+  .sidebar__link {
+    display: block;
+    text-align: center;
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 8px 12px;
+    font-size: 0; /* hide text label on narrow view */
+  }
+  .sidebar__link:hover {
+    color: var(--text);
+    border-color: var(--accent);
+    box-shadow: var(--glow), 0 0 0 2px var(--accent-weak) inset;
+  }
+  /* Icon-only labels */
+  .sidebar__link--github::after {
+    content: "";
+    display: inline-block;
+    width: 18px; height: 18px;
+    background-image: url('https://github.githubassets.com/favicons/favicon.svg');
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    /* Invert to improve contrast on dark theme */
+    filter: invert(1) brightness(1.2) contrast(1.1);
+  }
+  .sidebar__link--linkedin::after {
+    content: "";
+    display: inline-block;
+    width: 18px; height: 18px;
+    background-image: url('https://static.licdn.com/scds/common/u/images/logos/favicons/v1/favicon.ico');
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+  .sidebar__link--scholar::after { content: "🎓"; font-size: 18px; }
+  .sidebar__link--email::after { content: "✉️"; font-size: 18px; }
 }
 
 @media (max-width: 640px) {
