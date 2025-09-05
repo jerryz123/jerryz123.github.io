@@ -11,15 +11,13 @@ SYNC_SCRIPT := backend/tools/sync-vector-store.mjs
 # - VECTOR_STORE_NAME: name of the vector store to create/use (default: jerry-site-knowledge)
 # - OPENAI_DELETE_FILES=1: when pruning, also delete detached OpenAI File objects (defaults to not deleting)
 
-.PHONY: help sync-vector-store deploy-dev deploy-prod sync-deploy-dev sync-deploy-prod
+.PHONY: help sync-vector-store deploy sync-deploy
 
 help:
 	@echo "Targets:"
-	@echo "  sync-vector-store  Upload database/ files to OpenAI and set VECTOR_STORE_ID in wrangler.toml"
-	@echo "  deploy-dev         Deploy dev env (explicit top-level env)"
-	@echo "  deploy-prod        Deploy prod env (no localhost CORS)"
-	@echo "  sync-deploy-dev    Sync database then deploy dev env"
-	@echo "  sync-deploy-prod   Sync database then deploy prod env"
+    @echo "  sync-vector-store  Upload database/ files to OpenAI and set VECTOR_STORE_ID in wrangler.toml"
+    @echo "  deploy            Deploy the Cloudflare Worker"
+    @echo "  sync-deploy       Sync database then deploy"
 	@echo "  list-vector-store  Show files attached to the configured VECTOR_STORE_ID"
 	@echo ""
 	@echo "Env vars:"
@@ -31,15 +29,10 @@ sync-vector-store:
 	@if [[ -z "$$OPENAI_API_KEY" ]]; then echo "OPENAI_API_KEY is required"; exit 1; fi
 	node $(SYNC_SCRIPT)
 
-deploy-dev:
-	cd $(WORKER_DIR) && wrangler deploy --env ""
+deploy:
+	cd $(WORKER_DIR) && wrangler deploy
 
-deploy-prod:
-	cd $(WORKER_DIR) && wrangler deploy --env production
-
-sync-deploy-dev: sync-vector-store deploy-dev
-
-sync-deploy-prod: sync-vector-store deploy-prod
+sync-deploy: sync-vector-store deploy
 
 list-vector-store:
 	@if [[ -z "$$OPENAI_API_KEY" ]]; then echo "OPENAI_API_KEY is required"; exit 1; fi
