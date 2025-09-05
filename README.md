@@ -10,7 +10,7 @@ A minimal, ChatGPT‑style personal website with a sidebar of chats on the left 
 - Markdown rendering for assistant messages (via marked + DOMPurify)
 - Streaming replies render as Markdown as they arrive
 - Backend proxy on Cloudflare Workers for OpenAI API calls (server-side system prompt, CORS, per‑IP rate limiting)
-- Retrieval: Optional OpenAI Vector Store (files in `database/`) used via Responses API `file_search`
+- Retrieval: Optional OpenAI Vector Store (files in `database/files/`) used via Responses API `file_search`
 
 ## Using The Site
 - Start on the landing page (photo, greeting, suggestions)
@@ -60,7 +60,7 @@ UI options and persistence
 - The currently open chat is remembered across refreshes.
 
 ## Retrieval (Vector Store)
-- Put public context files about you in `database/` (`.md`, `.txt`).
+- Put public context files about you in `database/files/` (`.md`, `.txt`, `.pdf`).
 - Sync them to an OpenAI Vector Store and deploy:
 
 ```bash
@@ -68,7 +68,7 @@ OPENAI_API_KEY=sk-... make sync-vector-store && wrangler deploy
 ```
 
 - This will:
-  - Create/refresh a Vector Store and attach files in `database/` (respects `.gitignore`).
+  - Create/refresh a Vector Store and attach files in `database/files/` (respects `.gitignore`).
   - Write the resulting `VECTOR_STORE_ID` to `backend/cloudflare-worker/wrangler.toml`.
   - Deploy the Worker (via `wrangler deploy`).
 

@@ -21,8 +21,8 @@ Use this doc to quickly understand structure, behaviors, and how to extend or de
   - `wrangler.toml` — Worker configuration and env vars.
 - `src/worker.js` — Worker code: `POST /chat`, `GET /health`, CORS, SSE streaming; optional retrieval via Responses API.
 - `README.md` — Setup and deploy instructions for the Worker.
-- `database/` — Public text/Markdown sources used for retrieval (synced to OpenAI Vector Store; respects `.gitignore`).
-- `backend/tools/` — Vector store scripts: `sync-vector-store.mjs`, `list-vector-store.mjs`.
+- `database/files/` — Public text/Markdown/PDF sources used for retrieval (synced to OpenAI Vector Store; respects `.gitignore`).
+- `database/` — Vector store scripts: `sync-vector-store.mjs`, `list-vector-store.mjs` and content under `database/files/`.
 
 ## Frontend Details
 Key behaviors in `app.js`:

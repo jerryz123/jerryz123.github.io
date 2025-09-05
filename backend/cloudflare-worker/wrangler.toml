@@ -16,6 +16,6 @@ new_sqlite_classes = ["RateLimiter"]
 # Localhost is intentionally excluded; the Worker rejects localhost requests.
 ALLOWED_ORIGINS = "https://jerryz123.github.io,https://jzhao.me,https://www.jzhao.me"
 # Retrieval store id (optional). If unset, retrieval is disabled and Chat Completions is used.
-VECTOR_STORE_ID = "vs_68ab7e653204819180b0b363149f4b02"
+VECTOR_STORE_ID = "vs_68ba839542348191a332a3a7caeb2989"
 # Default model used by the Worker (can be overridden per request)
 MODEL = "gpt-4.1-mini"
