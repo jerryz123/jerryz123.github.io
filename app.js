@@ -10,12 +10,117 @@
   const sendBtn = $('#sendBtn');
   const newChatBtn = $('#newChatBtn');
   const contentSection = document.getElementById('content');
+  const suggestionsEl = document.querySelector('.suggestions');
+  const styleSuggestionsEl = document.querySelector('.style-suggestions');
   const scrollSentinel = document.createElement('div');
   scrollSentinel.setAttribute('aria-hidden', 'true');
   scrollSentinel.style.height = '1px';
   let stickToBottom = true;
   let firstLoad = true;
   let forceNextScroll = false;
+  // Track selected writing style (exclusive)
+  let selectedStyle = null;
+
+  // Suggestions: see four themed pools below
+
+  // Four-pool variant: pick one suggestion from each pool
+  const SUGGESTION_POOLS = {
+    about: [
+      "Tell me about Jerry.",
+      "Summarize Jerry's background.",
+      "What is Jerry's background?",
+      "Give me a quick bio of Jerry.",
+      "Where did Jerry study and work?",
+      "What are Jerry's interests outside work?",
+      "What motivates Jerry’s work?",
+      "What are Jerry’s notable achievements?",
+      "Tell me about Jerry, in a Haiku",
+    ],
+    expertise: [
+      "What is Jerry's expertise in?",
+      "What projects is Jerry working on?",
+      "What topics does Jerry focus on?",
+      "Which areas does Jerry research?",
+      "Show highlights from Jerry’s portfolio.",
+      "What’s Jerry’s experience with AI/ML?",
+      "What languages and tools does Jerry use?",
+      "What problems is Jerry currently exploring?",
+    ],
+    contact: [
+      "How do I contact Jerry?",
+      "What's the best way to reach Jerry?",
+      "Where can I find Jerry online?",
+      "Share Jerry’s email and social links.",
+      "Where is Jerry located?",
+    ],
+    site: [
+      "How does this website work?",
+      "What does the backend use?",
+      "What model powers this site?",
+      "How was this website designed?",
+      "What powers the frontend?",
+      "How do I deploy my own version?",
+      "What system-prompt is used?",
+    ],
+  };
+
+  function renderSuggestionsFromPools() {
+    if (!suggestionsEl) return;
+    const pickOne = (arr) => (Array.isArray(arr) && arr.length ? arr[Math.floor(Math.random() * arr.length)] : null);
+    const picks = [
+      pickOne(SUGGESTION_POOLS.about),
+      pickOne(SUGGESTION_POOLS.expertise),
+      pickOne(SUGGESTION_POOLS.contact),
+      pickOne(SUGGESTION_POOLS.site),
+    ].filter(Boolean);
+    // Shuffle the four suggestions so their positions vary
+    for (let i = picks.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [picks[i], picks[j]] = [picks[j], picks[i]];
+    }
+    suggestionsEl.innerHTML = picks.map(t => `<button class="suggestion" title="${escapeHtml(t)}">${escapeHtml(t)}</button>`).join('');
+  }
+
+  // Style suggestions: pick four from a single pool
+  const STYLE_POOL = [
+      "A Haiku",
+      "A Personnel Dossier",
+      "A FAQ",
+      "Release Notes",
+      "A Unix man page",
+      "A Design Doc",
+      "A Stack Trace",
+      "A Compiler Error",
+      "Chisel RTL",
+      "A Socratic Dialogue",
+      "A Pull Request",
+      "A Github Issue",
+      "A CHANGELOG",
+      "A README",
+      "A ELI5",
+      "A Rogue AI",
+      "Snoopy",
+      "R2-D2",
+      "Dr. Doofenshmirtz",
+      "Emperor Palpatine",
+      "A ASCII diagram",
+      "A TL;DR",
+  ];
+
+  function renderStyleSuggestions() {
+    if (!styleSuggestionsEl) return;
+    const items = STYLE_POOL.slice();
+    for (let i = items.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [items[i], items[j]] = [items[j], items[i]];
+    }
+    const picks = items.slice(0, Math.min(4, items.length));
+    styleSuggestionsEl.innerHTML = picks.map(t => {
+      const active = selectedStyle === t;
+      const title = escapeHtml(t);
+      return `<button class="suggestion style-suggestion" aria-pressed="${active}" title="${title}">${title}</button>`;
+    }).join('');
+  }
 
   function isNearBottom() {
     const s = contentSection;
@@ -139,6 +244,11 @@
     renderSidebar();
     renderMessages();
     const started = !!currentId; // landing when no active chat
+    if (!started) {
+      // Ensure landing suggestions are present
+      renderSuggestionsFromPools();
+      renderStyleSuggestions();
+    }
     if (contentSection) contentSection.classList.toggle('hide-welcome', started);
     queueMicrotask(() => maybeScrollBottom(true));
   }
@@ -150,8 +260,12 @@
 
   async function onSubmit(e) {
     e.preventDefault();
-    const text = prompt.value.trim();
-    if (!text) return;
+    const baseText = prompt.value.trim();
+    if (!baseText) return;
+    let text = baseText;
+    if (selectedStyle) {
+      text = `${baseText} in the style of ${selectedStyle}`;
+    }
 
     let chat = chats.find(c => c.id === currentId);
     if (!chat) {
@@ -360,6 +474,9 @@
     }
     currentId = null;
     try { localStorage.setItem(CURRENT_KEY, ''); } catch {}
+    // Re-roll the suggestions when returning to the landing view
+    renderSuggestionsFromPools();
+    renderStyleSuggestions();
     renderAll();
     prompt.focus();
   }
@@ -385,12 +502,34 @@
     });
   }
 
-  // Suggestions
-  $$('.suggestion').forEach(btn => btn.addEventListener('click', () => {
-    prompt.value = btn.textContent.trim();
-    autosize();
-    prompt.focus();
-  }));
+  // Suggestions (event delegation so dynamically-rendered buttons work)
+  if (suggestionsEl) {
+    suggestionsEl.addEventListener('click', (e) => {
+      const btn = e.target.closest('.suggestion');
+      if (!btn) return;
+      prompt.value = btn.textContent.trim();
+      autosize();
+      prompt.focus();
+    });
+  }
+
+  // Style suggestions: toggle single selected style; applied on send
+  if (styleSuggestionsEl) {
+    styleSuggestionsEl.addEventListener('click', (e) => {
+      const btn = e.target.closest('.style-suggestion');
+      if (!btn) return;
+      const style = btn.textContent.trim();
+      if (selectedStyle === style) {
+        selectedStyle = null;
+        btn.setAttribute('aria-pressed', 'false');
+      } else {
+        selectedStyle = style;
+        // Clear previous selection in the UI
+        styleSuggestionsEl.querySelectorAll('.style-suggestion[aria-pressed="true"]').forEach(b => b.setAttribute('aria-pressed', 'false'));
+        btn.setAttribute('aria-pressed', 'true');
+      }
+    });
+  }
 
   // Theme toggle removed; site stays in dark mode.
 
@@ -407,6 +546,8 @@
 
   // Init
   try { if (window.marked) window.marked.setOptions({ gfm: true, breaks: false }); } catch {}
+  renderSuggestionsFromPools();
+  renderStyleSuggestions();
   autosize();
   renderAll();
 })();
