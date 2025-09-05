@@ -17,14 +17,14 @@ ALLOWED_ORIGINS = "https://jerryz123.github.io,https://jzhao.me,https://www.jzha
 # Retrieval store id (optional). If unset, retrieval is disabled and Chat Completions is used.
 VECTOR_STORE_ID = "vs_68ab7e653204819180b0b363149f4b02"
 # Default model used by the Worker (can be overridden per request)
-MODEL = "gpt-5-mini-2025-08-07"
+MODEL = "gpt-4.1-mini"
 
 # Production environment overrides (no localhost in CORS)
 [env.production]
 [env.production.vars]
 ALLOWED_ORIGINS = "https://jerryz123.github.io,https://jzhao.me,https://www.jzhao.me"
 VECTOR_STORE_ID = "vs_68ab7e653204819180b0b363149f4b02"
-MODEL = "gpt-5-mini-2025-08-07"
+MODEL = "gpt-4.1-mini"
 
 [env.production.durable_objects]
 bindings = [
