@@ -230,6 +230,7 @@ function json(obj, cors, status = 200) {
   });
 }
 
+
 async function listVectorStoreFileIds(base, apiKey, vectorId, limit = 100) {
   const out = [];
   let after = null;
