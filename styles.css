@@ -74,9 +74,13 @@ body {
 .welcome .headshot { width: 128px; height: 128px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto 14px; border: 2px solid var(--border); box-shadow: 0 10px 28px rgba(0,0,0,.28), 0 0 0 3px rgba(255,255,255,0.03) inset; background: #222; }
 .welcome h1 { margin: 0 0 6px; font-size: 36px; letter-spacing: -0.02em; }
 .welcome p { margin: 0 0 18px; color: var(--muted); }
-.suggestions { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; margin: 0 auto; max-width: 560px; }
-.suggestion { padding: 12px 14px; border-radius: 14px; border: 1px solid var(--border); background: var(--panel); color: var(--text); cursor: pointer; text-align:left; box-shadow: 0 6px 20px rgba(0,0,0,.15); transition: transform .06s ease, border-color .15s ease; font-size: 17px; line-height: 1.3; }
+.suggestions { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; margin: 0 auto; max-width: 720px; }
+.style-block { margin-top: 14px; }
+.style-block__label { margin: 6px auto 10px; color: var(--muted); font-size: 14px; }
+.style-suggestions { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; margin: 0 auto; max-width: 720px; }
+.suggestion { padding: 12px 14px; border-radius: 14px; border: 1px solid var(--border); background: var(--panel); color: var(--text); cursor: pointer; text-align:left; box-shadow: 0 6px 20px rgba(0,0,0,.15); transition: transform .06s ease, border-color .15s ease; font-size: 17px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .suggestion:hover { border-color: var(--accent); box-shadow: 0 6px 22px rgba(0,0,0,.2), 0 0 0 2px var(--accent-weak) inset; transform: translateY(-1px); }
+.style-suggestion[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-weak) inset, 0 6px 22px rgba(0,0,0,.2); background: rgba(14,124,97,0.08); }
 
 .messages { display: grid; gap: 14px; margin: 24px auto 100px; max-width: 760px; }
 .msg { display: grid; grid-template-columns: 36px 1fr; gap: 12px; padding: 14px 16px; background: #11141b; border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 8px 24px rgba(0,0,0,.18); animation: pop .18s ease; }
@@ -174,7 +178,7 @@ textarea#prompt { resize: none; flex: 1; border: 0; outline: none; color: var(--
 }
 
 @media (max-width: 640px) {
-  .suggestions { grid-template-columns: 1fr; }
+  .suggestions, .style-suggestions { grid-template-columns: 1fr; }
   .welcome h1 { font-size: 28px; }
 }
 
