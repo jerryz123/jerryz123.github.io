@@ -21,6 +21,15 @@
   // Track selected writing style (exclusive)
   let selectedStyle = null;
 
+  function clearSelectedStyle() {
+    selectedStyle = null;
+    try {
+      if (styleSuggestionsEl) {
+        styleSuggestionsEl.querySelectorAll('.style-suggestion[aria-pressed="true"]').forEach(b => b.setAttribute('aria-pressed', 'false'));
+      }
+    } catch {}
+  }
+
   // Suggestions: see four themed pools below
 
   // Four-pool variant: pick one suggestion from each pool
@@ -78,7 +87,7 @@
       const j = Math.floor(Math.random() * (i + 1));
       [picks[i], picks[j]] = [picks[j], picks[i]];
     }
-    suggestionsEl.innerHTML = picks.map(t => `<button class="suggestion" title="${escapeHtml(t)}">${escapeHtml(t)}</button>`).join('');
+    suggestionsEl.innerHTML = picks.map(t => `<button class="suggestion" type="button" title="${escapeHtml(t)}">${escapeHtml(t)}</button>`).join('');
   }
 
   // Style suggestions: pick four from a single pool
@@ -118,7 +127,7 @@
     styleSuggestionsEl.innerHTML = picks.map(t => {
       const active = selectedStyle === t;
       const title = escapeHtml(t);
-      return `<button class="suggestion style-suggestion" aria-pressed="${active}" title="${title}">${title}</button>`;
+      return `<button class="suggestion style-suggestion" type="button" aria-pressed="${active}" title="${title}">${title}</button>`;
     }).join('');
   }
 
@@ -515,6 +524,7 @@
       if (!btn) return;
       prompt.value = btn.textContent.trim();
       autosize();
+      try { sendBtn.disabled = !prompt.value.trim(); } catch {}
       prompt.focus();
     });
   }
@@ -522,6 +532,7 @@
   // Style suggestions: toggle single selected style; applied on send
   if (styleSuggestionsEl) {
     styleSuggestionsEl.addEventListener('click', (e) => {
+      e.preventDefault();
       const btn = e.target.closest('.style-suggestion');
       if (!btn) return;
       const style = btn.textContent.trim();
@@ -534,6 +545,8 @@
         styleSuggestionsEl.querySelectorAll('.style-suggestion[aria-pressed="true"]').forEach(b => b.setAttribute('aria-pressed', 'false'));
         btn.setAttribute('aria-pressed', 'true');
       }
+      // Return focus to the input so Enter submits as expected
+      try { prompt.focus(); } catch {}
     });
   }
 
