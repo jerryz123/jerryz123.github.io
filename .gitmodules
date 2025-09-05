@@ -1,3 +1,0 @@
-[submodule "database"]
-	path = database
-	url = git@github.com:jerryz123/website-db.git
