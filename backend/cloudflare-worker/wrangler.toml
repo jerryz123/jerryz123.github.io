@@ -14,7 +14,7 @@ new_sqlite_classes = ["RateLimiter"]
 [vars]
 # Comma-separated list of allowed Origins for CORS.
 # Localhost is intentionally excluded; the Worker rejects localhost requests.
-ALLOWED_ORIGINS = "https://jerryz123.github.io,https://jzhao.me,https://www.jzhao.me"
+ALLOWED_ORIGINS = "https://jerryz123.github.io,https://jzhao.me,https://www.jzhao.me,http://localhost:8000"
 # Retrieval store id (optional). If unset, retrieval is disabled and Chat Completions is used.
 VECTOR_STORE_ID = "vs_68ba839542348191a332a3a7caeb2989"
 # Default model used by the Worker (can be overridden per request)

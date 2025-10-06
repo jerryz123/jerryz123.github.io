@@ -1,3 +1,5 @@
+const DEFAULT_MODEL = 'gpt-4.1-mini';
+
 /* Simple ChatGPT-style homepage interactions (no network). */
 (function () {
   const $ = (sel, el = document) => el.querySelector(sel);
@@ -9,6 +11,13 @@
   const form = $('#composerForm');
   const sendBtn = $('#sendBtn');
   const newChatBtn = $('#newChatBtn');
+  const modelSwitch = document.querySelector('.model-switch');
+  const fastModel = (modelSwitch?.dataset.fast) || DEFAULT_MODEL;
+  const slowModel = (modelSwitch?.dataset.slow) || DEFAULT_MODEL;
+  const settingsBtn = $('#settingsBtn');
+  const settingsModal = $('#settingsModal');
+  const settingsCloseBtn = $('#settingsCloseBtn');
+  const settingsBackdrop = $('#settingsBackdrop');
   const contentSection = document.getElementById('content');
   const suggestionsEl = document.querySelector('.suggestions');
   const styleSuggestionsEl = document.querySelector('.style-suggestions');
@@ -147,6 +156,7 @@
   const STORAGE_KEY = 'jz_site_chats_v1';
   const CACHE_KEY = 'jz_site_reply_cache_v2';
   const CURRENT_KEY = 'jz_site_current_chat_v1';
+  const MODEL_PREF_KEY = 'jz_site_model_pref_v1';
   // Re-enable persistence in localStorage
   const store = {
     load() {
@@ -166,12 +176,104 @@
   };
   let replyCache = cache.load();
 
+  let activeModel = DEFAULT_MODEL;
+  try {
+    const savedModel = localStorage.getItem(MODEL_PREF_KEY) || '';
+    if (savedModel) activeModel = savedModel;
+  } catch {}
+
+  function canonicalModel(id) {
+    return id === slowModel ? slowModel : fastModel;
+  }
+
+  function setActiveModel(nextModel, persist = true) {
+    const resolved = canonicalModel(nextModel);
+    activeModel = resolved;
+    const isSlow = resolved === slowModel;
+    if (modelSwitch) {
+      modelSwitch.setAttribute('aria-checked', String(isSlow));
+      modelSwitch.classList.toggle('is-slow', isSlow);
+    }
+    document.body?.classList.toggle('reasoning-on', isSlow);
+    if (persist) {
+      try { localStorage.setItem(MODEL_PREF_KEY, resolved); } catch {}
+    }
+  }
+
+  if (modelSwitch) {
+    if (activeModel !== slowModel && activeModel !== fastModel) {
+      activeModel = fastModel;
+    }
+    modelSwitch.addEventListener('click', () => {
+      const next = activeModel === slowModel ? fastModel : slowModel;
+      setActiveModel(next);
+    });
+    modelSwitch.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        const wantSlow = e.key === 'ArrowRight';
+        const next = wantSlow ? slowModel : fastModel;
+        setActiveModel(next);
+      }
+    });
+  } else {
+    activeModel = canonicalModel(activeModel);
+  }
+
+  setActiveModel(activeModel, false);
+
+  let lastFocusedBeforeSettings = null;
+
+  function openSettings() {
+    if (!settingsModal) return;
+    lastFocusedBeforeSettings = document.activeElement;
+    settingsModal.hidden = false;
+    document.body.classList.add('settings-open');
+    requestAnimationFrame(() => {
+      (settingsCloseBtn || modelSwitch || settingsBtn)?.focus?.();
+      setActiveModel(activeModel, false);
+    });
+  }
+
+  function closeSettings() {
+    if (!settingsModal) return;
+    settingsModal.hidden = true;
+    document.body.classList.remove('settings-open');
+    if (lastFocusedBeforeSettings && typeof lastFocusedBeforeSettings.focus === 'function') {
+      lastFocusedBeforeSettings.focus();
+    }
+  }
+
+  if (settingsBtn && settingsModal) {
+    settingsBtn.addEventListener('click', openSettings);
+  }
+  if (settingsCloseBtn) settingsCloseBtn.addEventListener('click', closeSettings);
+  if (settingsBackdrop) settingsBackdrop.addEventListener('click', closeSettings);
+  if (settingsModal) {
+    settingsModal.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        closeSettings();
+      }
+    });
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && settingsModal && !settingsModal.hidden) {
+      closeSettings();
+    }
+  });
+
   // If a chat ended with a pending placeholder (e.g., refresh mid-request), drop the Thinking… text
   for (const c of chats) {
     if (!c || !Array.isArray(c.msgs) || c.msgs.length === 0) continue;
     const last = c.msgs[c.msgs.length - 1];
     if (last.who === 'assistant' && last.text === 'Thinking…') {
       last.text = '';
+    }
+    for (const msg of c.msgs) {
+      if (msg && msg.who === 'assistant' && typeof msg.text === 'string' && msg.summary) {
+        msg.text = stripTrailingSummary(msg.text, msg.summary);
+      }
     }
   }
   // Restore last active chat id; if not found, show landing
@@ -216,32 +318,101 @@
     const chat = chats.find(c => c.id === currentId);
     messages.innerHTML = '';
     if (!chat) return;
-    chat.msgs.forEach(m => messages.appendChild(msgEl(m.who, m.text)));
+  chat.msgs.forEach(m => {
+    const fragment = msgEls(m);
+    fragment.forEach(node => messages.appendChild(node));
+  });
     // Ensure there is a bottom sentinel to scroll into view
     messages.appendChild(scrollSentinel);
     // After rendering messages, maybe scroll to bottom on next frame
     maybeScrollBottom(true);
   }
 
-  function msgEl(who, text) {
-    const el = document.createElement('div');
-    el.className = `msg ${who}`;
-    const isAssistant = who === 'assistant';
-    // Special animated placeholder for pending responses
-    if (isAssistant && text === 'Thinking…') {
-      el.innerHTML = `
+function msgEls(msg) {
+  const { who, text, summary } = msg;
+  const nodes = [];
+  const el = document.createElement('div');
+  el.className = `msg ${who}`;
+  const isAssistant = who === 'assistant';
+  // Special animated placeholder for pending responses
+  if (isAssistant && text === 'Thinking…') {
+    el.innerHTML = `
         <div class="who">${who === 'user' ? '🧑' : '✨'}</div>
         <div class="bubble thinking">Thinking<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></div>
       `;
-      return el;
-    }
-    const contentHTML = isAssistant ? renderMarkdown(text || '') : escapeHtml(text || '');
-    el.innerHTML = `
+      nodes.push(el);
+      return nodes;
+  }
+  const contentHTML = isAssistant ? renderMarkdown(text || '') : escapeHtml(text || '');
+  el.innerHTML = `
       <div class="who">${who === 'user' ? '🧑' : '✨'}</div>
       <div class="bubble">${contentHTML}</div>
     `;
-    return el;
+  if (isAssistant && summary) {
+    const summaryEl = document.createElement('div');
+    summaryEl.className = 'msg reasoning';
+    summaryEl.innerHTML = `
+      <div class="who">🧠</div>
+      <div class="bubble">${escapeHtml(summary)}</div>
+    `;
+    nodes.push(summaryEl);
   }
+  nodes.push(el);
+  return nodes;
+}
+
+function appendSummary(container, text) {
+  if (!container) return;
+  const parent = container.parentElement;
+  if (!parent) return;
+  let summaryMsg = container.previousElementSibling;
+  if (summaryMsg && !summaryMsg.classList.contains('reasoning')) summaryMsg = null;
+  if (!text) {
+    if (summaryMsg) summaryMsg.remove();
+    return;
+  }
+  if (!summaryMsg) {
+    summaryMsg = document.createElement('div');
+    summaryMsg.className = 'msg reasoning';
+    summaryMsg.innerHTML = `
+      <div class="who">🧠</div>
+      <div class="bubble"></div>
+    `;
+    parent.insertBefore(summaryMsg, container);
+  }
+  const bubble = summaryMsg.querySelector('.bubble');
+  if (bubble) bubble.textContent = text;
+}
+
+function coerceSummaryText(val) {
+  if (!val) return '';
+  if (typeof val === 'string') return val;
+  if (Array.isArray(val)) return val.map(coerceSummaryText).join('');
+  if (typeof val === 'object') {
+    if (typeof val.text === 'string') return val.text;
+    if (Array.isArray(val.summary)) return val.summary.map(coerceSummaryText).join('');
+    if (Array.isArray(val.summary_delta)) return val.summary_delta.map(coerceSummaryText).join('');
+    if (typeof val.delta === 'string') return val.delta;
+    if (Array.isArray(val.delta)) return val.delta.map(coerceSummaryText).join('');
+  }
+  return '';
+}
+
+function stripTrailingSummary(text, summary) {
+  if (!text || !summary) return text || '';
+  const cleanedSummary = summary.trim();
+  if (!cleanedSummary) return text;
+  const idx = text.lastIndexOf(cleanedSummary);
+  if (idx === -1) return text;
+  const tailStart = idx;
+  const tail = text.slice(tailStart);
+  // Require the summary to be at the end (allowing trailing whitespace)
+  const tailRemainder = tail.replace(cleanedSummary, '');
+  if (/^\s*$/.test(tailRemainder)) {
+    return text.slice(0, tailStart).replace(/\s+$/, '');
+  }
+  return text;
+}
 
   function setTitleFromFirstUserLine(chat) {
     const firstUser = chat.msgs.find(m => m.who === 'user');
@@ -296,10 +467,14 @@
     store.save(chats);
 
     // Check cache: if we already have a reply for this exact conversation state, reuse it
-    const key = convoKey(chat);
+    const currentModel = activeModel || DEFAULT_MODEL;
+    const key = convoKey(chat, false, currentModel);
     let assistantIndex;
     if (replyCache[key]) {
-      chat.msgs.push({ who: 'assistant', text: replyCache[key] });
+      const cached = replyCache[key];
+      const cachedText = typeof cached === 'string' ? cached : (cached && typeof cached === 'object' ? cached.text || '' : '');
+      const cachedSummary = cached && typeof cached === 'object' ? cached.summary || '' : '';
+      chat.msgs.push({ who: 'assistant', text: cachedText, summary: cachedSummary });
       assistantIndex = chat.msgs.length - 1;
       store.save(chats);
       prompt.value = '';
@@ -310,7 +485,7 @@
     }
 
     // Placeholder assistant bubble; show Thinking… until first tokens arrive
-    chat.msgs.push({ who: 'assistant', text: 'Thinking…' });
+    chat.msgs.push({ who: 'assistant', text: 'Thinking…', summary: '' });
     assistantIndex = chat.msgs.length - 1;
 
     prompt.value = '';
@@ -319,7 +494,7 @@
     renderAll();
 
     try {
-      await streamCompletion(chat, assistantIndex, key);
+      await streamCompletion(chat, assistantIndex, key, currentModel);
     } catch (err) {
       chat.msgs[assistantIndex].text = 'Error contacting backend. Please configure config.js with your Worker URL and ensure CORS is allowed.\n\n' + (err?.message || String(err));
     } finally {
@@ -328,13 +503,14 @@
     }
   }
 
-  async function streamCompletion(chat, assistantIndex, key) {
+  async function streamCompletion(chat, assistantIndex, key, model) {
     if (!API_BASE) throw new Error('API_BASE is not set. Edit config.js.');
     const history = buildHistoryForAPI(chat);
-    const res = await fetch(`${API_BASE}/chat?stream=1`, {
+    const selectedModel = model || DEFAULT_MODEL;
+    const res = await fetch(`${API_BASE}/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: history, stream: true }),
+      body: JSON.stringify({ messages: history, model: selectedModel }),
     });
     if (!res.ok) {
       const t = await safeText(res);
@@ -344,9 +520,12 @@
     const decoder = new TextDecoder();
     let buf = '';
     let acc = '';
+    let summaryText = chat.msgs[assistantIndex].summary || '';
+    let summaryPieces = summaryText ? [summaryText] : [];
     let lastPaint = 0;
     // Grab the last assistant bubble to update in-place (avoid full re-render flicker)
     const bubbleEl = getLastAssistantBubble();
+    const msgContainer = bubbleEl ? bubbleEl.parentElement : null;
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
@@ -358,15 +537,49 @@
         if (!s.startsWith('data:')) continue;
         const data = s.slice(5).trim();
         if (data === '[DONE]') {
-          replyCache[key] = acc;
+          replyCache[key] = { text: acc, summary: summaryText };
           cache.save(replyCache);
+          chat.msgs[assistantIndex].summary = summaryText;
           store.save(chats);
           if (bubbleEl) { bubbleEl.innerHTML = renderMarkdown(acc); }
-          maybeScrollBottom(false);
+          if (msgContainer) appendSummary(msgContainer, summaryText);
+          if (!summaryText) maybeScrollBottom(false);
           return;
         }
         try {
           const json = JSON.parse(data);
+          if (json) {
+            const summaryDelta = coerceSummaryText(json.summary_delta || json.delta?.summary || json.data?.summary_delta);
+            if (summaryDelta) {
+              const deltaStr = summaryDelta;
+              if (deltaStr) {
+                summaryPieces.push(deltaStr);
+                summaryText = summaryPieces.join('');
+                chat.msgs[assistantIndex].summary = summaryText;
+                store.save(chats);
+                if (msgContainer) appendSummary(msgContainer, summaryText);
+              }
+              continue;
+            }
+            const summaryFull = coerceSummaryText(json.summary);
+            if (summaryFull) {
+              const fullTrim = summaryFull.trim();
+              if (fullTrim && fullTrim !== summaryText) {
+                summaryText = fullTrim;
+                summaryPieces = [summaryText];
+                chat.msgs[assistantIndex].summary = summaryText;
+                const trimmed = stripTrailingSummary(acc, summaryText);
+                if (trimmed !== acc) {
+                  acc = trimmed;
+                  chat.msgs[assistantIndex].text = acc;
+                  if (bubbleEl) bubbleEl.innerHTML = renderMarkdown(acc);
+                }
+                store.save(chats);
+                if (msgContainer) appendSummary(msgContainer, summaryText);
+              }
+              continue;
+            }
+          }
           const delta = json?.choices?.[0]?.delta?.content || '';
           if (delta) {
             acc += delta;
@@ -374,27 +587,31 @@
             const now = Date.now();
             if (now - lastPaint > 50) {
               // During streaming, render incrementally: raw uses text, otherwise Markdown
-              if (bubbleEl) {
-                if (bubbleEl.classList.contains('thinking')) {
-                  // First tokens: drop thinking state
-                  bubbleEl.classList.remove('thinking');
-                }
-                bubbleEl.innerHTML = renderMarkdown(acc);
-              }
-              lastPaint = now;
+          if (bubbleEl) {
+            if (bubbleEl.classList.contains('thinking')) {
+              // First tokens: drop thinking state
+              bubbleEl.classList.remove('thinking');
+            }
+            bubbleEl.innerHTML = renderMarkdown(acc);
+          }
+          lastPaint = now;
               maybeScrollBottom(false);
             }
           }
         } catch {}
       }
     }
-    replyCache[key] = acc;
+    const finalText = stripTrailingSummary(acc, summaryText);
+    replyCache[key] = { text: finalText, summary: summaryText };
     cache.save(replyCache);
+    chat.msgs[assistantIndex].summary = summaryText;
+    chat.msgs[assistantIndex].text = finalText;
     store.save(chats);
     if (bubbleEl) {
       bubbleEl.innerHTML = renderMarkdown(acc);
     }
-    maybeScrollBottom(false);
+    if (msgContainer) appendSummary(msgContainer, summaryText);
+    if (!summaryText) maybeScrollBottom(false);
   }
 
   function renderMarkdown(text) {
@@ -450,21 +667,21 @@
     }
   }
 
-  async function fetchCompletion(chat) {
+  async function fetchCompletion(chat, model = DEFAULT_MODEL) {
     if (!API_BASE) throw new Error('API_BASE is not set. Edit config.js.');
     // Build chat history into OpenAI format
     const history = buildHistoryForAPI(chat);
     const res = await fetch(`${API_BASE}/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: history }),
+      body: JSON.stringify({ messages: history, model }),
     });
     if (!res.ok) {
       const t = await safeText(res);
       throw new Error(`HTTP ${res.status}: ${t.slice(0, 500)}`);
     }
     const data = await res.json();
-    return data?.content || '';
+    return data;
   }
 
   async function safeText(res) {
@@ -574,7 +791,7 @@
 
 // Compute a stable key for the conversation state up to the last user turn.
 // If excludeTrailingAssistant is true, drop a trailing assistant message (e.g., placeholder) from the hash.
-function convoKey(chat, excludeTrailingAssistant = false) {
+function convoKey(chat, excludeTrailingAssistant = false, model = DEFAULT_MODEL) {
   const msgs = chat.msgs.slice();
   if (excludeTrailingAssistant && msgs.length && msgs[msgs.length - 1].who === 'assistant') {
     msgs.pop();
@@ -583,7 +800,7 @@ function convoKey(chat, excludeTrailingAssistant = false) {
   let lastUserIdx = -1;
   for (let i = msgs.length - 1; i >= 0; i--) { if (msgs[i].who === 'user') { lastUserIdx = i; break; } }
   const subset = lastUserIdx >= 0 ? msgs.slice(0, lastUserIdx + 1) : msgs;
-  const payload = JSON.stringify({ system: 'site-assistant:v1', msgs: subset.map(m => ({ r: m.who, c: m.text })) });
+  const payload = JSON.stringify({ system: 'site-assistant:v1', model, msgs: subset.map(m => ({ r: m.who, c: m.text })) });
   return hashStr(payload);
 }
 

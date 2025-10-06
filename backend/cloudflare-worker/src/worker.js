@@ -76,12 +76,15 @@ export default {
       const system = (typeof env.SYSTEM_PROMPT === 'string' && env.SYSTEM_PROMPT.trim())
         ? env.SYSTEM_PROMPT
         : DEFAULT_SYSTEM_PROMPT;
-      const model = (body.model || env.MODEL || 'gpt-4o-mini') + '';
-      const stream = url.searchParams.get('stream') === '1' || body.stream === true;
+      const model = (body.model || env.MODEL || 'gpt-4.1-mini') + '';
+      const stream = true;
       // Optional reasoning control (Responses API only)
-      const reasoningEffort = (body?.reasoning && typeof body.reasoning.effort === 'string')
-        ? body.reasoning.effort
-        : (env.REASONING_EFFORT || 'minimal');
+      const reasoningEnabled = isReasoningModel(model);
+      const reasoningEffort = reasoningEnabled
+        ? ((body?.reasoning && typeof body.reasoning.effort === 'string')
+            ? body.reasoning.effort
+            : (env.REASONING_EFFORT || 'medium'))
+        : null;
       // Optional text controls (Responses API only)
       const textOptions = (body && typeof body.text === 'object' && body.text)
         ? body.text
@@ -101,102 +104,36 @@ export default {
       const base = (env.OPENAI_API_BASE || 'https://api.openai.com').replace(/\/$/, '');
       const vectorId = (env.VECTOR_STORE_ID || '').trim();
 
-      if (vectorId) {
-        // Use Responses API with Retrieval when a vector store is configured
-        // Newer schema: provide vector_store_ids directly on the file_search tool
-        const respPayload = {
-          model,
-          input: chatMessages, // role/content array is accepted by Responses API
-          tools: [ { type: 'file_search', vector_store_ids: [vectorId] } ],
-          stream,
-        };
-        // Only include reasoning for models/paths that support it (Responses API)
-        if (reasoningEffort) respPayload.reasoning = { effort: reasoningEffort };
-        if (textOptions) respPayload.text = textOptions;
-        // Send with graceful downgrade: if model rejects reasoning/text controls, retry without them
-        async function sendResponses(payload) {
-          return fetch(`${base}/v1/responses`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${env.OPENAI_API_KEY}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(payload),
-          });
-        }
-        let upstream = await sendResponses(respPayload);
-        if (!upstream.ok) {
-          const errText = await upstream.text().catch(() => '');
-          try {
-            const errObj = JSON.parse(errText);
-            const msg = errObj?.error?.message || '';
-            const param = errObj?.error?.param || '';
-            const unsupportedReasoning = /reasoning/i.test(msg) || String(param).startsWith('reasoning');
-            const unsupportedText = /text\.?verbosity/i.test(msg) || String(param).startsWith('text');
-            if (unsupportedReasoning || unsupportedText) {
-              const downgraded = { ...respPayload };
-              delete downgraded.reasoning;
-              delete downgraded.text;
-              upstream = await sendResponses(downgraded);
-            } else {
-              return json({ error: 'OpenAI error', details: errText }, cors, 502);
-            }
-          } catch {
-            return json({ error: 'OpenAI error', details: errText }, cors, 502);
-          }
-          if (!upstream.ok) {
-            const err2 = await upstream.text().catch(() => '');
-            return json({ error: 'OpenAI error', details: err2 }, cors, 502);
-          }
-        }
-        if (stream) {
-          // Transform Responses SSE → chat.completions-style SSE for frontend compatibility
-          const headers = new Headers({
-            ...cors,
-            'Content-Type': 'text/event-stream; charset=utf-8',
-            'Cache-Control': 'no-store, no-transform',
-            'Connection': 'keep-alive',
-            'X-Prompt-Version': env.PROMPT_VERSION || 'v2',
-          });
-          const transformed = transformResponsesSSEToCompletions(upstream.body);
-          return new Response(transformed, { status: 200, headers });
-        } else {
-          const data = await upstream.json();
-          // Best-effort extract of final output_text
-          const content = extractResponsesText(data) || '';
-          const extra = { 'X-Prompt-Version': env.PROMPT_VERSION || 'v2', 'Cache-Control': 'no-store, no-transform' };
-          return json({ content, raw: data }, { ...cors, ...extra });
-        }
-      }
-
-      // Fallback: classic Chat Completions (no retrieval)
-      const payload = { model, messages: chatMessages, stream };
-      const upstream = await fetch(`${base}/v1/chat/completions`, {
+      const respPayload = {
+        model,
+        input: chatMessages,
+        stream: true,
+      };
+      if (vectorId) respPayload.tools = [ { type: 'file_search', vector_store_ids: [vectorId] } ];
+      if (reasoningEffort) respPayload.reasoning = { effort: reasoningEffort, summary: 'auto' };
+      if (textOptions) respPayload.text = textOptions;
+      const upstream = await fetch(`${base}/v1/responses`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${env.OPENAI_API_KEY}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(respPayload),
       });
       if (!upstream.ok) {
         const errText = await upstream.text().catch(() => '');
-        return json({ error: 'OpenAI error', details: errText }, cors, 502);
+        console.log('OpenAI error response:', upstream.status, errText);
+        return json({ error: 'OpenAI error', details: errText }, cors, upstream.status || 502);
       }
-      if (stream) {
-        const headers = new Headers({
-          ...cors,
-          'Content-Type': 'text/event-stream; charset=utf-8',
-          'Cache-Control': 'no-store, no-transform',
-          'Connection': 'keep-alive',
-          'X-Prompt-Version': env.PROMPT_VERSION || 'v2',
-        });
-        return new Response(upstream.body, { status: 200, headers });
-      }
-      const data = await upstream.json();
-      const content = data?.choices?.[0]?.message?.content ?? '';
-      const extra = { 'X-Prompt-Version': env.PROMPT_VERSION || 'v2', 'Cache-Control': 'no-store, no-transform' };
-      return json({ content, raw: data }, { ...cors, ...extra });
+      const headers = new Headers({
+        ...cors,
+        'Content-Type': 'text/event-stream; charset=utf-8',
+        'Cache-Control': 'no-store, no-transform',
+        'Connection': 'keep-alive',
+        'X-Prompt-Version': env.PROMPT_VERSION || 'v2',
+      });
+      const transformed = transformResponsesSSEToCompletions(upstream.body);
+      return new Response(transformed, { status: 200, headers });
     }
 
     return new Response('Not found', { status: 404, headers: cors });
@@ -228,6 +165,12 @@ function json(obj, cors, status = 200) {
       'Cache-Control': cors?.['Cache-Control'] || 'no-store',
     },
   });
+}
+
+
+function isReasoningModel(model) {
+  const id = String(model || '').toLowerCase();
+  return id.startsWith('gpt-5') || id.startsWith('o4-') || id.startsWith('o5-');
 }
 
 
@@ -263,10 +206,34 @@ function transformResponsesSSEToCompletions(upstreamBody) {
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
   let buffer = '';
+  let finalSummary = '';
   return new ReadableStream({
     start(controller) {
       const reader = upstreamBody.getReader();
+      let summaryFinalSent = false;
+
+      const emitSummaryFull = (text) => {
+        const cleaned = (text || '').trim();
+        if (!cleaned) return false;
+        finalSummary = cleaned;
+        summaryFinalSent = true;
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ summary: finalSummary })}\n\n`));
+        return true;
+      };
+
+      const emitSummaryDelta = (chunk) => {
+        if (!chunk) return false;
+        summaryFinalSent = false;
+        finalSummary = finalSummary ? `${finalSummary}${chunk}` : chunk;
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ summary_delta: chunk })}\n\n`));
+        return true;
+      };
+
       function pushDone() {
+        const trimmed = (finalSummary || '').trim();
+        if (trimmed && !summaryFinalSent) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ summary: trimmed })}\n\n`));
+        }
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
         controller.close();
       }
@@ -283,18 +250,45 @@ function transformResponsesSSEToCompletions(upstreamBody) {
               const data = ln.slice(5).trim();
               if (!data) continue;
               try {
+                console.log('OpenAI SSE:', data);
                 const obj = JSON.parse(data);
-                // Responses streaming events: look for text deltas
-                // Common types: response.output_text.delta, response.refusal.delta, response.completed
                 const t = obj.type || '';
                 if (t === 'response.completed') continue; // handled by pushDone
+
+                const type = String(t);
+                const lowerType = type.toLowerCase();
+
+                // Handle explicit summary events
+                const isSummaryDelta = type === 'response.summary.delta'
+                  || type === 'response.summary_text.delta'
+                  || type === 'response.reasoning_summary.delta'
+                  || type === 'response.reasoning_summary_text.delta';
+
+                if (isSummaryDelta) {
+                  const summaryChunk = coerceSummary(
+                    obj.summary_delta
+                    || obj.delta
+                    || obj.output_text_delta
+                    || obj.text
+                    || obj.content
+                  );
+                  if (emitSummaryDelta(summaryChunk)) continue;
+                }
+
+                const summaryFull = coerceSummary(obj.summary);
+                if (emitSummaryFull(summaryFull)) continue;
+
+                const summaryDeltaChunk = coerceSummary(obj.summary_delta || obj.delta?.summary || obj.data?.summary_delta);
+                if (emitSummaryDelta(summaryDeltaChunk)) continue;
+
                 let deltaText = '';
-                if (t.endsWith('.delta') && typeof obj.delta === 'string') {
+                if (type === 'response.output_text.delta') {
+                  deltaText = typeof obj.delta === 'string' ? obj.delta : (obj.output_text_delta || '');
+                } else if (lowerType.endsWith('.delta') && typeof obj.delta === 'string') {
                   deltaText = obj.delta;
-                } else if (obj.output_text_delta) {
+                } else if (typeof obj.output_text_delta === 'string') {
                   deltaText = obj.output_text_delta;
                 } else if (obj.delta && obj.delta.content) {
-                  // fallback structure
                   deltaText = String(obj.delta.content);
                 }
                 if (deltaText) {
@@ -313,15 +307,27 @@ function transformResponsesSSEToCompletions(upstreamBody) {
 }
 
 function extractResponsesText(data) {
-  // Try to collect output_text from the Responses object
-  if (!data) return '';
-  // New Responses API often returns aggregated output_text
-  if (typeof data.output_text === 'string') return data.output_text;
+  if (!data) return { content: '', summary: '' };
+  let content = '';
+  let summary = '';
+  if (typeof data.output_text === 'string') content = data.output_text;
   if (Array.isArray(data.output) && data.output.length) {
-    // Concatenate any text segments
-    return data.output.map(part => part?.content || part?.text || '').join('');
+    const textParts = [];
+    for (const part of data.output) {
+      if (part?.type === 'message') {
+        const segments = Array.isArray(part.content) ? part.content : [];
+        textParts.push(segments.map(seg => seg?.text || seg?.content || '').join(''));
+      } else if (part?.type === 'reasoning') {
+        if (!summary && Array.isArray(part.summary)) {
+          summary = part.summary.map(seg => seg?.text || '').join('').trim();
+        }
+      } else if (part?.content || part?.text) {
+        textParts.push(part.content || part.text);
+      }
+    }
+    if (!content) content = textParts.join('');
   }
-  return '';
+  return { content, summary };
 }
 
 function clientIp(req) {
@@ -330,6 +336,24 @@ function clientIp(req) {
   const xff = req.headers.get('x-forwarded-for');
   if (xff) return xff.split(',')[0].trim();
   return '0.0.0.0';
+}
+function coerceSummary(val) {
+  if (!val) return '';
+  if (typeof val === 'string') return val;
+  if (Array.isArray(val)) return val.map(coerceSummary).join('');
+  if (typeof val === 'object') {
+    if (typeof val.text === 'string') return val.text;
+    if (typeof val.summary === 'string') return val.summary;
+    if (Array.isArray(val.summary)) return val.summary.map(coerceSummary).join('');
+    if (Array.isArray(val.summary_delta)) return val.summary_delta.map(coerceSummary).join('');
+    if (typeof val.delta === 'string') return val.delta;
+    if (Array.isArray(val.delta)) return val.delta.map(coerceSummary).join('');
+    if (val.delta && typeof val.delta === 'object') return coerceSummary(val.delta);
+    if (typeof val.output_text === 'string') return val.output_text;
+    if (Array.isArray(val.output_text)) return val.output_text.map(coerceSummary).join('');
+    if (Array.isArray(val.content)) return val.content.map(coerceSummary).join('');
+  }
+  return '';
 }
 
 export class RateLimiter {
