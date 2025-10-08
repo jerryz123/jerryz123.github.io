@@ -353,8 +353,10 @@ function msgEls(msg) {
     summaryEl.className = 'msg reasoning';
     summaryEl.innerHTML = `
       <div class="who">🧠</div>
-      <div class="bubble">${escapeHtml(summary)}</div>
+      <div class="bubble"></div>
     `;
+    const bubble = summaryEl.querySelector('.bubble');
+    if (bubble) bubble.innerHTML = renderMarkdown(summary);
     nodes.push(summaryEl);
   }
   nodes.push(el);
@@ -381,7 +383,7 @@ function appendSummary(container, text) {
     parent.insertBefore(summaryMsg, container);
   }
   const bubble = summaryMsg.querySelector('.bubble');
-  if (bubble) bubble.textContent = text;
+  if (bubble) bubble.innerHTML = renderMarkdown(text);
 }
 
 function coerceSummaryText(val) {

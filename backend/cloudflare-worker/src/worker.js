@@ -112,6 +112,7 @@ export default {
       if (vectorId) respPayload.tools = [ { type: 'file_search', vector_store_ids: [vectorId] } ];
       if (reasoningEffort) respPayload.reasoning = { effort: reasoningEffort, summary: 'auto' };
       if (textOptions) respPayload.text = textOptions;
+      console.log('OpenAI request payload:', respPayload);
       const upstream = await fetch(`${base}/v1/responses`, {
         method: 'POST',
         headers: {

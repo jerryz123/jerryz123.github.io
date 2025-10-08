@@ -144,7 +144,7 @@ textarea#prompt { resize: none; flex: 1; border: 0; outline: none; color: var(--
   .clear-chats { padding: 10px; font-size: 0; }
   .clear-chats::after { content: "🗑"; font-size: 18px; }
   .settings-btn { padding: 10px; font-size: 0; }
-  .settings-btn::after { content: "⚙️"; font-size: 18px; }
+  .settings-btn::after { content: "⚙️"; font-size: 18px; display: inline-flex; align-items: center; justify-content: center; width: 100%; }
   /* Show footer links as buttons similar to clear-chats */
   .sidebar__footer { display: grid; grid-template-columns: 1fr; gap: 8px; padding: 10px; }
   .sidebar__link {
