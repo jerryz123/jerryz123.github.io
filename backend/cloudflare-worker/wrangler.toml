@@ -18,4 +18,4 @@ ALLOWED_ORIGINS = "https://jerryz123.github.io,https://jzhao.me,https://www.jzha
 # Retrieval store id (optional). If unset, retrieval is disabled and Chat Completions is used.
 VECTOR_STORE_ID = "vs_68ba839542348191a332a3a7caeb2989"
 # Default model used by the Worker (can be overridden per request)
-MODEL = "gpt-4.1-mini"
+MODEL = "gpt-5.1"

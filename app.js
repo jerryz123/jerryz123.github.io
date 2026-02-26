@@ -1,4 +1,4 @@
-const DEFAULT_MODEL = 'gpt-4.1-mini';
+const DEFAULT_MODEL = 'gpt-5.1';
 
 /* Simple ChatGPT-style homepage interactions (no network). */
 (function () {
@@ -12,6 +12,10 @@ const DEFAULT_MODEL = 'gpt-4.1-mini';
   const sendBtn = $('#sendBtn');
   const newChatBtn = $('#newChatBtn');
   const modelSwitch = document.querySelector('.model-switch');
+  if (modelSwitch) {
+    // Ensure the fast/standard option tracks the configured DEFAULT_MODEL
+    modelSwitch.dataset.fast = DEFAULT_MODEL;
+  }
   const fastModel = (modelSwitch?.dataset.fast) || DEFAULT_MODEL;
   const slowModel = (modelSwitch?.dataset.slow) || DEFAULT_MODEL;
   const settingsBtn = $('#settingsBtn');
@@ -177,10 +181,17 @@ const DEFAULT_MODEL = 'gpt-4.1-mini';
   let replyCache = cache.load();
 
   let activeModel = DEFAULT_MODEL;
+  let hasStoredModel = false;
   try {
     const savedModel = localStorage.getItem(MODEL_PREF_KEY) || '';
-    if (savedModel) activeModel = savedModel;
+    if (savedModel) {
+      activeModel = savedModel;
+      hasStoredModel = true;
+    }
   } catch {}
+  if (!hasStoredModel && slowModel) {
+    activeModel = slowModel;
+  }
 
   function canonicalModel(id) {
     return id === slowModel ? slowModel : fastModel;
