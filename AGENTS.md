@@ -34,9 +34,10 @@ Key behaviors in `app.js`:
 - Welcome visibility: The landing section (photo, greeting, suggestions) is hidden whenever there is an active chat; shown otherwise.
 - Markdown: Assistant messages are rendered via `marked` + sanitized by `DOMPurify`. Libraries are loaded from CDN in `index.html`.
 - System prompt is server-controlled in the Worker (`SYSTEM_PROMPT` and `PROMPT_VERSION` in `wrangler.toml`). The frontend no longer sends a `system` field. Prompt v2 rejects unrelated requests and applies the “Absolute Diagnostic Mode” rules.
- - Retrieval: If `VECTOR_STORE_ID` is set, the Worker calls OpenAI Responses API with `tools: [{ type: "file_search", vector_store_ids: [VECTOR_STORE_ID] }]` and streams results; events are transformed into Chat Completions–style deltas for the frontend.
+- Model selection: Fast mode defaults to `gpt-5.4-mini`; the reasoning toggle upgrades requests to `gpt-5.4` and also raises reasoning/verbosity settings.
+- Retrieval: If `VECTOR_STORE_ID` is set, the Worker calls OpenAI Responses API with `tools: [{ type: "file_search", vector_store_ids: [VECTOR_STORE_ID] }]` and streams results; events are transformed into Chat Completions–style deltas for the frontend.
 - Persistence: Chats are stored in `localStorage` under `jz_site_chats_v1`.
-- Reply cache: Stores assistant replies keyed by a hash of the conversation up to the last user message (`jz_site_reply_cache_v2`). Prevents duplicate backend calls on refresh/resend.
+- Reply cache: Stores assistant replies keyed by a hash of the conversation up to the last user message plus request tuning (`jz_site_reply_cache_v3`). Prevents duplicate backend calls on refresh/resend.
 - Keyboard: Enter submits, Shift+Enter inserts newline.
 
 Configuration in `config.js`:
@@ -49,7 +50,7 @@ Markdown libraries in `index.html`:
 Location: `backend/cloudflare-worker`
 
 What it does:
-- `POST /chat` forwards a Chat Completions request to OpenAI using the server-side `OPENAI_API_KEY`. It prepends the server-owned system prompt and streams tokens when `?stream=1` (frontend uses this by default).
+- `POST /chat` forwards a Responses API request to OpenAI using the server-side `OPENAI_API_KEY`. It prepends the server-owned system prompt and streams tokens back to the frontend.
 - `GET /health` returns `{ ok: true }` for sanity checks.
 - CORS: Allows origins in `ALLOWED_ORIGINS` (comma-separated). Handles `OPTIONS` preflight.
 
@@ -91,7 +92,8 @@ Notes:
 
 ## Storage Keys
 - Chats: `localStorage['jz_site_chats_v1']`
-- Reply cache: `localStorage['jz_site_reply_cache_v2']`
+- Reply cache: `localStorage['jz_site_reply_cache_v3']`
+- Model preference: `localStorage['jz_site_model_pref_v2']`
 
 ## Quick Commands
 - Local preview: `python3 -m http.server 8000`

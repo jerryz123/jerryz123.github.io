@@ -15,7 +15,10 @@ new_sqlite_classes = ["RateLimiter"]
 # Comma-separated list of allowed Origins for CORS.
 # Localhost is intentionally excluded; the Worker rejects localhost requests.
 ALLOWED_ORIGINS = "https://jerryz123.github.io,https://jzhao.me,https://www.jzhao.me,http://localhost:8000"
-# Retrieval store id (optional). If unset, retrieval is disabled and Chat Completions is used.
+# Retrieval store id (optional). If unset, retrieval is disabled and the Worker uses Responses API without file search.
 VECTOR_STORE_ID = "vs_68ba839542348191a332a3a7caeb2989"
 # Default model used by the Worker (can be overridden per request)
-MODEL = "gpt-5.1"
+MODEL = "gpt-5.4-mini"
+# Default tuning for callers that do not provide explicit request controls.
+REASONING_EFFORT = "low"
+TEXT_VERBOSITY = "low"

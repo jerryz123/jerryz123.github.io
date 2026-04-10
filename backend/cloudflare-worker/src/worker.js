@@ -1,5 +1,5 @@
-// Cloudflare Worker: OpenAI Chat proxy with CORS + optional streaming
-// - POST /chat  { messages:[{role,content}], system?, model?, stream? }
+// Cloudflare Worker: OpenAI Responses API proxy with CORS + SSE streaming
+// - POST /chat  { messages:[{role,content}], model?, reasoning?, text? }
 // - GET  /health
 
 const DEFAULT_SYSTEM_PROMPT = `
@@ -78,14 +78,13 @@ export default {
       const system = (typeof env.SYSTEM_PROMPT === 'string' && env.SYSTEM_PROMPT.trim())
         ? env.SYSTEM_PROMPT
         : DEFAULT_SYSTEM_PROMPT;
-      const model = (body.model || env.MODEL || 'gpt-5.1') + '';
-      const stream = true;
+      const model = (body.model || env.MODEL || 'gpt-5.4-mini') + '';
       // Optional reasoning control (Responses API only)
       const reasoningEnabled = isReasoningModel(model);
       const reasoningEffort = reasoningEnabled
         ? ((body?.reasoning && typeof body.reasoning.effort === 'string')
             ? body.reasoning.effort
-            : (env.REASONING_EFFORT || 'medium'))
+            : (env.REASONING_EFFORT || 'low'))
         : null;
       // Optional text controls (Responses API only)
       const textOptions = (body && typeof body.text === 'object' && body.text)

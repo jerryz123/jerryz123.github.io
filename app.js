@@ -1,6 +1,56 @@
-const DEFAULT_MODEL = 'gpt-5.1';
+const DEFAULT_FAST_MODEL = 'gpt-5.4-mini';
+const DEFAULT_SLOW_MODEL = 'gpt-5.4';
+const DEFAULT_MODEL = DEFAULT_FAST_MODEL;
+const MODEL_REQUEST_PROFILES = Object.freeze({
+  [DEFAULT_FAST_MODEL]: Object.freeze({
+    reasoning: Object.freeze({ effort: 'low' }),
+    text: Object.freeze({ verbosity: 'low' }),
+  }),
+  [DEFAULT_SLOW_MODEL]: Object.freeze({
+    reasoning: Object.freeze({ effort: 'medium' }),
+    text: Object.freeze({ verbosity: 'medium' }),
+  }),
+});
+const LEGACY_MODEL_ALIASES = Object.freeze({
+  'gpt-4.1-mini': DEFAULT_FAST_MODEL,
+  'gpt-5.1': DEFAULT_FAST_MODEL,
+  'gpt-5-mini': DEFAULT_SLOW_MODEL,
+});
 
-/* Simple ChatGPT-style homepage interactions (no network). */
+function resolveModelId(id) {
+  const normalized = String(id || '').trim();
+  return LEGACY_MODEL_ALIASES[normalized] || normalized;
+}
+
+function getRequestProfile(model = DEFAULT_MODEL) {
+  const profile = MODEL_REQUEST_PROFILES[resolveModelId(model)];
+  if (!profile) return {};
+  const out = {};
+  if (profile.reasoning) out.reasoning = { ...profile.reasoning };
+  if (profile.text) out.text = { ...profile.text };
+  return out;
+}
+
+function buildChatRequest(history, model = DEFAULT_MODEL) {
+  const resolvedModel = resolveModelId(model) || DEFAULT_MODEL;
+  const payload = { messages: history, model: resolvedModel };
+  const profile = getRequestProfile(resolvedModel);
+  if (profile.reasoning) payload.reasoning = profile.reasoning;
+  if (profile.text) payload.text = profile.text;
+  return payload;
+}
+
+function getRequestFingerprint(model = DEFAULT_MODEL) {
+  const resolvedModel = resolveModelId(model) || DEFAULT_MODEL;
+  const profile = getRequestProfile(resolvedModel);
+  return {
+    model: resolvedModel,
+    reasoning: profile.reasoning || null,
+    text: profile.text || null,
+  };
+}
+
+/* ChatGPT-style homepage interactions with a streaming backend. */
 (function () {
   const $ = (sel, el = document) => el.querySelector(sel);
   const $$ = (sel, el = document) => Array.from(el.querySelectorAll(sel));
@@ -13,11 +63,11 @@ const DEFAULT_MODEL = 'gpt-5.1';
   const newChatBtn = $('#newChatBtn');
   const modelSwitch = document.querySelector('.model-switch');
   if (modelSwitch) {
-    // Ensure the fast/standard option tracks the configured DEFAULT_MODEL
-    modelSwitch.dataset.fast = DEFAULT_MODEL;
+    modelSwitch.dataset.fast = DEFAULT_FAST_MODEL;
+    modelSwitch.dataset.slow = DEFAULT_SLOW_MODEL;
   }
-  const fastModel = (modelSwitch?.dataset.fast) || DEFAULT_MODEL;
-  const slowModel = (modelSwitch?.dataset.slow) || DEFAULT_MODEL;
+  const fastModel = DEFAULT_FAST_MODEL;
+  const slowModel = DEFAULT_SLOW_MODEL;
   const settingsBtn = $('#settingsBtn');
   const settingsModal = $('#settingsModal');
   const settingsCloseBtn = $('#settingsCloseBtn');
@@ -158,9 +208,9 @@ const DEFAULT_MODEL = 'gpt-5.1';
   // System prompt now lives in the backend (Cloudflare Worker)
 
   const STORAGE_KEY = 'jz_site_chats_v1';
-  const CACHE_KEY = 'jz_site_reply_cache_v2';
+  const CACHE_KEY = 'jz_site_reply_cache_v3';
   const CURRENT_KEY = 'jz_site_current_chat_v1';
-  const MODEL_PREF_KEY = 'jz_site_model_pref_v1';
+  const MODEL_PREF_KEY = 'jz_site_model_pref_v2';
   // Re-enable persistence in localStorage
   const store = {
     load() {
@@ -181,20 +231,16 @@ const DEFAULT_MODEL = 'gpt-5.1';
   let replyCache = cache.load();
 
   let activeModel = DEFAULT_MODEL;
-  let hasStoredModel = false;
   try {
-    const savedModel = localStorage.getItem(MODEL_PREF_KEY) || '';
+    const savedModel = resolveModelId(localStorage.getItem(MODEL_PREF_KEY) || '');
     if (savedModel) {
       activeModel = savedModel;
-      hasStoredModel = true;
     }
   } catch {}
-  if (!hasStoredModel && slowModel) {
-    activeModel = slowModel;
-  }
 
   function canonicalModel(id) {
-    return id === slowModel ? slowModel : fastModel;
+    const resolved = resolveModelId(id);
+    return resolved === slowModel ? slowModel : fastModel;
   }
 
   function setActiveModel(nextModel, persist = true) {
@@ -523,7 +569,7 @@ function stripTrailingSummary(text, summary) {
     const res = await fetch(`${API_BASE}/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: history, model: selectedModel }),
+      body: JSON.stringify(buildChatRequest(history, selectedModel)),
     });
     if (!res.ok) {
       const t = await safeText(res);
@@ -687,7 +733,7 @@ function stripTrailingSummary(text, summary) {
     const res = await fetch(`${API_BASE}/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: history, model }),
+      body: JSON.stringify(buildChatRequest(history, model)),
     });
     if (!res.ok) {
       const t = await safeText(res);
@@ -813,7 +859,11 @@ function convoKey(chat, excludeTrailingAssistant = false, model = DEFAULT_MODEL)
   let lastUserIdx = -1;
   for (let i = msgs.length - 1; i >= 0; i--) { if (msgs[i].who === 'user') { lastUserIdx = i; break; } }
   const subset = lastUserIdx >= 0 ? msgs.slice(0, lastUserIdx + 1) : msgs;
-  const payload = JSON.stringify({ system: 'site-assistant:v1', model, msgs: subset.map(m => ({ r: m.who, c: m.text })) });
+  const payload = JSON.stringify({
+    system: 'site-assistant:v2',
+    request: getRequestFingerprint(model),
+    msgs: subset.map(m => ({ r: m.who, c: m.text })),
+  });
   return hashStr(payload);
 }
 

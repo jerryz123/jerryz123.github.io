@@ -7,14 +7,16 @@ A minimal, ChatGPT‑style personal website with a sidebar of chats on the left 
 - Create chats on first send; return to landing via New Chat or the brand
 - Local persistence (saved in your browser); Clear Chats button to reset (no confirmation)
 - Remembers the active chat across refreshes (you return to the same chat)
+- Fast mode defaults to `gpt-5.4-mini`; the settings toggle upgrades to `gpt-5.4` with stronger reasoning
 - Markdown rendering for assistant messages (via marked + DOMPurify)
 - Streaming replies render as Markdown as they arrive
-- Backend proxy on Cloudflare Workers for OpenAI API calls (server-side system prompt, CORS, per‑IP rate limiting)
+- Backend proxy on Cloudflare Workers for OpenAI Responses API calls (server-side system prompt, CORS, per‑IP rate limiting)
 - Retrieval: Optional OpenAI Vector Store (files in `database/files/`) used via Responses API `file_search`
 
 ## Using The Site
 - Start on the landing page (photo, greeting, suggestions)
 - Type a message and press Enter to create your first chat
+- First-time visitors start on the fast default model; enable reasoning in Settings to switch to `gpt-5.4`
 - Click chats in the sidebar to switch between them
 - Click “New Chat” or the site name/avatar to go back to the landing page
 - Click “Clear Chats” to erase local history
@@ -34,7 +36,7 @@ A Cloudflare Worker keeps your OpenAI API key private, adds CORS/streaming, and 
 
 - Location: `backend/cloudflare-worker`
 - Endpoints:
-  - `POST /chat` — forwards chat requests to OpenAI (non‑stream and SSE stream supported)
+  - `POST /chat` — forwards chat requests to the OpenAI Responses API and returns an SSE stream
   - `GET /health` — quick health check `{ ok: true }`
 - Setup summary:
   1) `npm i -g wrangler`
@@ -101,8 +103,9 @@ Note: Files in this repo are public if the repo is public. Keep private material
 - Deeper project context and extension pointers live in `AGENTS.md`.
 - Notable storage keys:
   - `localStorage['jz_site_chats_v1']`
-  - `localStorage['jz_site_reply_cache_v2']`
+  - `localStorage['jz_site_reply_cache_v3']`
   - `localStorage['jz_site_current_chat_v1']`
+  - `localStorage['jz_site_model_pref_v2']`
 
 ---
 Questions or ideas to improve? Open an issue or reach out.
