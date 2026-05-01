@@ -1,50 +1,28 @@
-const DEFAULT_FAST_MODEL = 'gpt-5.4-mini';
-const DEFAULT_SLOW_MODEL = 'gpt-5.4';
-const DEFAULT_MODEL = DEFAULT_FAST_MODEL;
-const MODEL_REQUEST_PROFILES = Object.freeze({
-  [DEFAULT_FAST_MODEL]: Object.freeze({
-    reasoning: Object.freeze({ effort: 'low' }),
-    text: Object.freeze({ verbosity: 'low' }),
-  }),
-  [DEFAULT_SLOW_MODEL]: Object.freeze({
-    reasoning: Object.freeze({ effort: 'medium' }),
-    text: Object.freeze({ verbosity: 'medium' }),
-  }),
-});
-const LEGACY_MODEL_ALIASES = Object.freeze({
-  'gpt-4.1-mini': DEFAULT_FAST_MODEL,
-  'gpt-5.1': DEFAULT_FAST_MODEL,
-  'gpt-5-mini': DEFAULT_SLOW_MODEL,
+const DEFAULT_MODEL = 'gpt-5.5';
+const DEFAULT_REQUEST_PROFILE = Object.freeze({
+  reasoning: Object.freeze({ effort: 'low' }),
+  text: Object.freeze({ verbosity: 'medium' }),
 });
 
-function resolveModelId(id) {
-  const normalized = String(id || '').trim();
-  return LEGACY_MODEL_ALIASES[normalized] || normalized;
-}
-
-function getRequestProfile(model = DEFAULT_MODEL) {
-  const profile = MODEL_REQUEST_PROFILES[resolveModelId(model)];
-  if (!profile) return {};
+function getRequestProfile() {
   const out = {};
-  if (profile.reasoning) out.reasoning = { ...profile.reasoning };
-  if (profile.text) out.text = { ...profile.text };
+  if (DEFAULT_REQUEST_PROFILE.reasoning) out.reasoning = { ...DEFAULT_REQUEST_PROFILE.reasoning };
+  if (DEFAULT_REQUEST_PROFILE.text) out.text = { ...DEFAULT_REQUEST_PROFILE.text };
   return out;
 }
 
-function buildChatRequest(history, model = DEFAULT_MODEL) {
-  const resolvedModel = resolveModelId(model) || DEFAULT_MODEL;
-  const payload = { messages: history, model: resolvedModel };
-  const profile = getRequestProfile(resolvedModel);
+function buildChatRequest(history) {
+  const payload = { messages: history };
+  const profile = getRequestProfile();
   if (profile.reasoning) payload.reasoning = profile.reasoning;
   if (profile.text) payload.text = profile.text;
   return payload;
 }
 
-function getRequestFingerprint(model = DEFAULT_MODEL) {
-  const resolvedModel = resolveModelId(model) || DEFAULT_MODEL;
-  const profile = getRequestProfile(resolvedModel);
+function getRequestFingerprint() {
+  const profile = getRequestProfile();
   return {
-    model: resolvedModel,
+    model: DEFAULT_MODEL,
     reasoning: profile.reasoning || null,
     text: profile.text || null,
   };
@@ -61,17 +39,6 @@ function getRequestFingerprint(model = DEFAULT_MODEL) {
   const form = $('#composerForm');
   const sendBtn = $('#sendBtn');
   const newChatBtn = $('#newChatBtn');
-  const modelSwitch = document.querySelector('.model-switch');
-  if (modelSwitch) {
-    modelSwitch.dataset.fast = DEFAULT_FAST_MODEL;
-    modelSwitch.dataset.slow = DEFAULT_SLOW_MODEL;
-  }
-  const fastModel = DEFAULT_FAST_MODEL;
-  const slowModel = DEFAULT_SLOW_MODEL;
-  const settingsBtn = $('#settingsBtn');
-  const settingsModal = $('#settingsModal');
-  const settingsCloseBtn = $('#settingsCloseBtn');
-  const settingsBackdrop = $('#settingsBackdrop');
   const contentSection = document.getElementById('content');
   const suggestionsEl = document.querySelector('.suggestions');
   const styleSuggestionsEl = document.querySelector('.style-suggestions');
@@ -210,7 +177,6 @@ function getRequestFingerprint(model = DEFAULT_MODEL) {
   const STORAGE_KEY = 'jz_site_chats_v1';
   const CACHE_KEY = 'jz_site_reply_cache_v3';
   const CURRENT_KEY = 'jz_site_current_chat_v1';
-  const MODEL_PREF_KEY = 'jz_site_model_pref_v2';
   // Re-enable persistence in localStorage
   const store = {
     load() {
@@ -229,96 +195,6 @@ function getRequestFingerprint(model = DEFAULT_MODEL) {
     save(obj) { try { localStorage.setItem(CACHE_KEY, JSON.stringify(obj)); } catch {} },
   };
   let replyCache = cache.load();
-
-  let activeModel = DEFAULT_MODEL;
-  try {
-    const savedModel = resolveModelId(localStorage.getItem(MODEL_PREF_KEY) || '');
-    if (savedModel) {
-      activeModel = savedModel;
-    }
-  } catch {}
-
-  function canonicalModel(id) {
-    const resolved = resolveModelId(id);
-    return resolved === slowModel ? slowModel : fastModel;
-  }
-
-  function setActiveModel(nextModel, persist = true) {
-    const resolved = canonicalModel(nextModel);
-    activeModel = resolved;
-    const isSlow = resolved === slowModel;
-    if (modelSwitch) {
-      modelSwitch.setAttribute('aria-checked', String(isSlow));
-      modelSwitch.classList.toggle('is-slow', isSlow);
-    }
-    document.body?.classList.toggle('reasoning-on', isSlow);
-    if (persist) {
-      try { localStorage.setItem(MODEL_PREF_KEY, resolved); } catch {}
-    }
-  }
-
-  if (modelSwitch) {
-    if (activeModel !== slowModel && activeModel !== fastModel) {
-      activeModel = fastModel;
-    }
-    modelSwitch.addEventListener('click', () => {
-      const next = activeModel === slowModel ? fastModel : slowModel;
-      setActiveModel(next);
-    });
-    modelSwitch.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-        e.preventDefault();
-        const wantSlow = e.key === 'ArrowRight';
-        const next = wantSlow ? slowModel : fastModel;
-        setActiveModel(next);
-      }
-    });
-  } else {
-    activeModel = canonicalModel(activeModel);
-  }
-
-  setActiveModel(activeModel, false);
-
-  let lastFocusedBeforeSettings = null;
-
-  function openSettings() {
-    if (!settingsModal) return;
-    lastFocusedBeforeSettings = document.activeElement;
-    settingsModal.hidden = false;
-    document.body.classList.add('settings-open');
-    requestAnimationFrame(() => {
-      (settingsCloseBtn || modelSwitch || settingsBtn)?.focus?.();
-      setActiveModel(activeModel, false);
-    });
-  }
-
-  function closeSettings() {
-    if (!settingsModal) return;
-    settingsModal.hidden = true;
-    document.body.classList.remove('settings-open');
-    if (lastFocusedBeforeSettings && typeof lastFocusedBeforeSettings.focus === 'function') {
-      lastFocusedBeforeSettings.focus();
-    }
-  }
-
-  if (settingsBtn && settingsModal) {
-    settingsBtn.addEventListener('click', openSettings);
-  }
-  if (settingsCloseBtn) settingsCloseBtn.addEventListener('click', closeSettings);
-  if (settingsBackdrop) settingsBackdrop.addEventListener('click', closeSettings);
-  if (settingsModal) {
-    settingsModal.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        e.stopPropagation();
-        closeSettings();
-      }
-    });
-  }
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && settingsModal && !settingsModal.hidden) {
-      closeSettings();
-    }
-  });
 
   // If a chat ended with a pending placeholder (e.g., refresh mid-request), drop the Thinking… text
   for (const c of chats) {
@@ -526,8 +402,7 @@ function stripTrailingSummary(text, summary) {
     store.save(chats);
 
     // Check cache: if we already have a reply for this exact conversation state, reuse it
-    const currentModel = activeModel || DEFAULT_MODEL;
-    const key = convoKey(chat, false, currentModel);
+    const key = convoKey(chat, false);
     let assistantIndex;
     if (replyCache[key]) {
       const cached = replyCache[key];
@@ -553,7 +428,7 @@ function stripTrailingSummary(text, summary) {
     renderAll();
 
     try {
-      await streamCompletion(chat, assistantIndex, key, currentModel);
+      await streamCompletion(chat, assistantIndex, key);
     } catch (err) {
       chat.msgs[assistantIndex].text = 'Error contacting backend. Please configure config.js with your Worker URL and ensure CORS is allowed.\n\n' + (err?.message || String(err));
     } finally {
@@ -562,14 +437,13 @@ function stripTrailingSummary(text, summary) {
     }
   }
 
-  async function streamCompletion(chat, assistantIndex, key, model) {
+  async function streamCompletion(chat, assistantIndex, key) {
     if (!API_BASE) throw new Error('API_BASE is not set. Edit config.js.');
     const history = buildHistoryForAPI(chat);
-    const selectedModel = model || DEFAULT_MODEL;
     const res = await fetch(`${API_BASE}/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(buildChatRequest(history, selectedModel)),
+      body: JSON.stringify(buildChatRequest(history)),
     });
     if (!res.ok) {
       const t = await safeText(res);
@@ -726,14 +600,14 @@ function stripTrailingSummary(text, summary) {
     }
   }
 
-  async function fetchCompletion(chat, model = DEFAULT_MODEL) {
+  async function fetchCompletion(chat) {
     if (!API_BASE) throw new Error('API_BASE is not set. Edit config.js.');
     // Build chat history into OpenAI format
     const history = buildHistoryForAPI(chat);
     const res = await fetch(`${API_BASE}/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(buildChatRequest(history, model)),
+      body: JSON.stringify(buildChatRequest(history)),
     });
     if (!res.ok) {
       const t = await safeText(res);
@@ -850,7 +724,7 @@ function stripTrailingSummary(text, summary) {
 
 // Compute a stable key for the conversation state up to the last user turn.
 // If excludeTrailingAssistant is true, drop a trailing assistant message (e.g., placeholder) from the hash.
-function convoKey(chat, excludeTrailingAssistant = false, model = DEFAULT_MODEL) {
+function convoKey(chat, excludeTrailingAssistant = false) {
   const msgs = chat.msgs.slice();
   if (excludeTrailingAssistant && msgs.length && msgs[msgs.length - 1].who === 'assistant') {
     msgs.pop();
@@ -861,7 +735,7 @@ function convoKey(chat, excludeTrailingAssistant = false, model = DEFAULT_MODEL)
   const subset = lastUserIdx >= 0 ? msgs.slice(0, lastUserIdx + 1) : msgs;
   const payload = JSON.stringify({
     system: 'site-assistant:v2',
-    request: getRequestFingerprint(model),
+    request: getRequestFingerprint(),
     msgs: subset.map(m => ({ r: m.who, c: m.text })),
   });
   return hashStr(payload);

@@ -34,8 +34,8 @@ Key behaviors in `app.js`:
 - Welcome visibility: The landing section (photo, greeting, suggestions) is hidden whenever there is an active chat; shown otherwise.
 - Markdown: Assistant messages are rendered via `marked` + sanitized by `DOMPurify`. Libraries are loaded from CDN in `index.html`.
 - System prompt is server-controlled in the Worker (`SYSTEM_PROMPT` and `PROMPT_VERSION` in `wrangler.toml`). The frontend no longer sends a `system` field. Prompt v2 rejects unrelated requests and applies the “Absolute Diagnostic Mode” rules.
-- Model selection: Fast mode defaults to `gpt-5.4-mini`; the reasoning toggle upgrades requests to `gpt-5.4` and also raises reasoning/verbosity settings.
-- Retrieval: If `VECTOR_STORE_ID` is set, the Worker calls OpenAI Responses API with `tools: [{ type: "file_search", vector_store_ids: [VECTOR_STORE_ID] }]` and streams results; events are transformed into Chat Completions–style deltas for the frontend.
+- Model selection: The Worker is pinned to `gpt-5.5`, and the frontend currently sends low reasoning effort and medium text verbosity on every request.
+- Tools: The Worker always enables the Responses API `web_search` tool, and if `VECTOR_STORE_ID` is set it also enables `file_search`; events are transformed into Chat Completions–style deltas for the frontend.
 - Persistence: Chats are stored in `localStorage` under `jz_site_chats_v1`.
 - Reply cache: Stores assistant replies keyed by a hash of the conversation up to the last user message plus request tuning (`jz_site_reply_cache_v3`). Prevents duplicate backend calls on refresh/resend.
 - Keyboard: Enter submits, Shift+Enter inserts newline.
@@ -93,7 +93,6 @@ Notes:
 ## Storage Keys
 - Chats: `localStorage['jz_site_chats_v1']`
 - Reply cache: `localStorage['jz_site_reply_cache_v3']`
-- Model preference: `localStorage['jz_site_model_pref_v2']`
 
 ## Quick Commands
 - Local preview: `python3 -m http.server 8000`
@@ -106,7 +105,7 @@ Notes:
   - Call `${API_BASE}/chat?stream=1` and read `res.body` via `ReadableStream`.
   - Parse lines starting with `data:`; accumulate `choices[0].delta.content`.
   - Update the assistant bubble incrementally.
-- To change model per request: include `model` in the body of `POST /chat`.
+- To change the site-wide model: update the frontend request builder and the Worker `MODEL` env var together.
 - To reset caches on model changes: bump `CACHE_KEY` and/or `STORAGE_KEY` versions.
 
 ---

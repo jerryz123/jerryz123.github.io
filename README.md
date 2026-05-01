@@ -7,16 +7,16 @@ A minimal, ChatGPT‑style personal website with a sidebar of chats on the left 
 - Create chats on first send; return to landing via New Chat or the brand
 - Local persistence (saved in your browser); Clear Chats button to reset (no confirmation)
 - Remembers the active chat across refreshes (you return to the same chat)
-- Fast mode defaults to `gpt-5.4-mini`; the settings toggle upgrades to `gpt-5.4` with stronger reasoning
+- Uses `gpt-5.5` for all chat requests
 - Markdown rendering for assistant messages (via marked + DOMPurify)
 - Streaming replies render as Markdown as they arrive
 - Backend proxy on Cloudflare Workers for OpenAI Responses API calls (server-side system prompt, CORS, per‑IP rate limiting)
+- Web search is enabled on every chat request
 - Retrieval: Optional OpenAI Vector Store (files in `database/files/`) used via Responses API `file_search`
 
 ## Using The Site
 - Start on the landing page (photo, greeting, suggestions)
 - Type a message and press Enter to create your first chat
-- First-time visitors start on the fast default model; enable reasoning in Settings to switch to `gpt-5.4`
 - Click chats in the sidebar to switch between them
 - Click “New Chat” or the site name/avatar to go back to the landing page
 - Click “Clear Chats” to erase local history
@@ -81,7 +81,8 @@ OPENAI_API_KEY=sk-... make list-vector-store
 
 How it works
 - The Worker calls OpenAI Responses API with:
-  - `tools: [{ type: "file_search", vector_store_ids: [VECTOR_STORE_ID] }]`
+  - `tools: [{ type: "web_search" }, { type: "file_search", vector_store_ids: [VECTOR_STORE_ID] }]` when a vector store is configured
+  - `tools: [{ type: "web_search" }]` when no vector store is configured
   - `input`: your conversation turns
   - `stream: true`
 - The Worker transforms Responses streaming events into Chat Completions–style deltas so the frontend remains unchanged.
@@ -105,7 +106,6 @@ Note: Files in this repo are public if the repo is public. Keep private material
   - `localStorage['jz_site_chats_v1']`
   - `localStorage['jz_site_reply_cache_v3']`
   - `localStorage['jz_site_current_chat_v1']`
-  - `localStorage['jz_site_model_pref_v2']`
 
 ---
 Questions or ideas to improve? Open an issue or reach out.

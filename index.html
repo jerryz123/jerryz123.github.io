@@ -54,7 +54,6 @@
           </div>
           <button class="new-chat" id="newChatBtn" title="New chat">+ New Chat</button>
           <button class="clear-chats" id="clearChatsBtn" title="Clear all chats">Clear Chats</button>
-          <button class="settings-btn" id="settingsBtn" title="Open settings">Settings</button>
         </div>
         <div class="sidebar__section">
           <div class="section__title">Chats</div>
@@ -92,29 +91,6 @@
           </form>
         </footer>
       </main>
-    </div>
-
-    <div id="settingsModal" class="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" hidden>
-      <div class="settings-backdrop" data-close id="settingsBackdrop"></div>
-      <div class="settings-sheet" role="document">
-        <header class="settings-header">
-          <h2 id="settingsTitle">Settings</h2>
-          <button type="button" class="settings-close" id="settingsCloseBtn" aria-label="Close settings">×</button>
-        </header>
-        <div class="settings-body">
-          <div class="model-row">
-            <div class="setting-copy">
-              <div class="setting-title">Enable Reasoning (slow)</div>
-              <div class="setting-desc">Use GPT-5.4 for deeper reasoning. GPT-5.4 mini stays faster and cheaper.</div>
-            </div>
-            <button type="button" class="model-switch" role="switch" aria-checked="false" aria-label="Toggle reasoning mode" data-fast="gpt-5.4-mini" data-slow="gpt-5.4">
-              <span class="switch-track">
-                <span class="switch-handle" aria-hidden="true"></span>
-              </span>
-            </button>
-          </div>
-        </div>
-      </div>
     </div>
 
     <script src="config.js"></script>

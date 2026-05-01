@@ -1,5 +1,5 @@
 // Cloudflare Worker: OpenAI Responses API proxy with CORS + SSE streaming
-// - POST /chat  { messages:[{role,content}], model?, reasoning?, text? }
+// - POST /chat  { messages:[{role,content}], reasoning?, text? }
 // - GET  /health
 
 const DEFAULT_SYSTEM_PROMPT = `
@@ -78,7 +78,7 @@ export default {
       const system = (typeof env.SYSTEM_PROMPT === 'string' && env.SYSTEM_PROMPT.trim())
         ? env.SYSTEM_PROMPT
         : DEFAULT_SYSTEM_PROMPT;
-      const model = (body.model || env.MODEL || 'gpt-5.4-mini') + '';
+      const model = (env.MODEL || 'gpt-5.5') + '';
       // Optional reasoning control (Responses API only)
       const reasoningEnabled = isReasoningModel(model);
       const reasoningEffort = reasoningEnabled
@@ -109,8 +109,12 @@ export default {
         model,
         input: chatMessages,
         stream: true,
+        tool_choice: 'auto',
       };
-      if (vectorId) respPayload.tools = [ { type: 'file_search', vector_store_ids: [vectorId] } ];
+      const tools = [ { type: 'web_search' } ];
+      if (vectorId) tools.push({ type: 'file_search', vector_store_ids: [vectorId] });
+      respPayload.tools = tools;
+      respPayload.include = [ 'web_search_call.action.sources' ];
       if (reasoningEffort) respPayload.reasoning = { effort: reasoningEffort, summary: 'auto' };
       if (textOptions) respPayload.text = textOptions;
       console.log('OpenAI request payload:', respPayload);
