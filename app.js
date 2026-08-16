@@ -103,7 +103,6 @@ function getRequestFingerprint() {
       "What does the system prompt allow and refuse?",
     ],
   };
-
   function renderSuggestionsFromPools() {
     if (!suggestionsEl) return;
     const pickOne = (arr) => (Array.isArray(arr) && arr.length ? arr[Math.floor(Math.random() * arr.length)] : null);
@@ -118,7 +117,11 @@ function getRequestFingerprint() {
       const j = Math.floor(Math.random() * (i + 1));
       [picks[i], picks[j]] = [picks[j], picks[i]];
     }
-    suggestionsEl.innerHTML = picks.map(t => `<button class="suggestion" type="button" title="${escapeHtml(t)}">${escapeHtml(t)}</button>`).join('');
+    suggestionsEl.innerHTML = picks.map(text => `
+      <button class="suggestion suggestion-card" type="button" data-prompt="${escapeHtml(text)}" title="${escapeHtml(text)}">
+        <span class="suggestion__text">${escapeHtml(text)}</span>
+      </button>
+    `).join('');
   }
 
   // Style suggestions: pick four from a single pool
@@ -673,7 +676,7 @@ function stripTrailingSummary(text, summary) {
     suggestionsEl.addEventListener('click', (e) => {
       const btn = e.target.closest('.suggestion');
       if (!btn) return;
-      prompt.value = btn.textContent.trim();
+      prompt.value = btn.dataset.prompt || btn.textContent.trim();
       autosize();
       try { sendBtn.disabled = !prompt.value.trim(); } catch {}
       prompt.focus();
