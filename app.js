@@ -1,4 +1,4 @@
-const DEFAULT_MODEL = 'gpt-5.5';
+const DEFAULT_MODEL = 'gpt-5.6-sol';
 const DEFAULT_REQUEST_PROFILE = Object.freeze({
   reasoning: Object.freeze({ effort: 'low' }),
   text: Object.freeze({ verbosity: 'medium' }),
@@ -93,7 +93,7 @@ function getRequestFingerprint() {
       "Where should I start if I want to follow Jerry’s work online?",
     ],
     site: [
-      "How does this site use GPT-5.5, web search, and file search?",
+      "How does this site use GPT-5.6 Sol, web search, and file search?",
       "What parts of this site are static frontend versus Worker backend?",
       "How does the site stream responses?",
       "What context files does this site use about Jerry?",

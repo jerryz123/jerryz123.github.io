@@ -78,7 +78,7 @@ export default {
       const system = (typeof env.SYSTEM_PROMPT === 'string' && env.SYSTEM_PROMPT.trim())
         ? env.SYSTEM_PROMPT
         : DEFAULT_SYSTEM_PROMPT;
-      const model = (env.MODEL || 'gpt-5.5') + '';
+      const model = (env.MODEL || 'gpt-5.6-sol') + '';
       // Optional reasoning control (Responses API only)
       const reasoningEnabled = isReasoningModel(model);
       const reasoningEffort = reasoningEnabled

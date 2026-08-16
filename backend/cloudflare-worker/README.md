@@ -23,10 +23,10 @@ Notes
 - Keep secrets server‑side only. Never put your OpenAI key in the frontend.
 - Optional `OPENAI_API_BASE` to use a compatible gateway. Defaults to `https://api.openai.com`.
 - The Worker always uses the OpenAI Responses API. It enables the hosted `web_search` tool on every request. When retrieval is enabled (`VECTOR_STORE_ID` is set), it also adds a `file_search` tool.
-- The default repo configuration uses `gpt-5.5`. The current frontend sends low reasoning effort and medium verbosity on every request.
+- The default repo configuration uses `gpt-5.6-sol`. The current frontend sends low reasoning effort and medium verbosity on every request.
 
 Reasoning effort and verbosity (Responses API)
-- Set env defaults in `wrangler.toml`, e.g. `MODEL = "gpt-5.5"`, `REASONING_EFFORT = "low"`, and `TEXT_VERBOSITY = "medium"`.
+- Set env defaults in `wrangler.toml`, e.g. `MODEL = "gpt-5.6-sol"`, `REASONING_EFFORT = "low"`, and `TEXT_VERBOSITY = "medium"`.
 - Or pass them per request: `{ "reasoning": { "effort": "medium" }, "text": { "verbosity": "medium" } }`.
 - The current frontend sends low reasoning effort and medium verbosity on every request.
 

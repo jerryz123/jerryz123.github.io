@@ -7,7 +7,7 @@ A minimal, ChatGPT‑style personal website with a sidebar of chats on the left 
 - Create chats on first send; return to landing via New Chat or the brand
 - Local persistence (saved in your browser); Clear Chats button to reset (no confirmation)
 - Remembers the active chat across refreshes (you return to the same chat)
-- Uses `gpt-5.5` for all chat requests
+- Uses `gpt-5.6-sol` for all chat requests
 - Markdown rendering for assistant messages (via marked + DOMPurify)
 - Streaming replies render as Markdown as they arrive
 - Backend proxy on Cloudflare Workers for OpenAI Responses API calls (server-side system prompt, CORS, per‑IP rate limiting)

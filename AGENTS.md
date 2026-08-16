@@ -34,7 +34,7 @@ Key behaviors in `app.js`:
 - Welcome visibility: The landing section (photo, greeting, suggestions) is hidden whenever there is an active chat; shown otherwise.
 - Markdown: Assistant messages are rendered via `marked` + sanitized by `DOMPurify`. Libraries are loaded from CDN in `index.html`.
 - System prompt is server-controlled in the Worker (`SYSTEM_PROMPT` and `PROMPT_VERSION` in `wrangler.toml`). The frontend no longer sends a `system` field. Prompt v2 rejects unrelated requests and applies the “Absolute Diagnostic Mode” rules.
-- Model selection: The Worker is pinned to `gpt-5.5`, and the frontend currently sends low reasoning effort and medium text verbosity on every request.
+- Model selection: The Worker is pinned to `gpt-5.6-sol`, and the frontend currently sends low reasoning effort and medium text verbosity on every request.
 - Tools: The Worker always enables the Responses API `web_search` tool, and if `VECTOR_STORE_ID` is set it also enables `file_search`; events are transformed into Chat Completions–style deltas for the frontend.
 - Persistence: Chats are stored in `localStorage` under `jz_site_chats_v1`.
 - Reply cache: Stores assistant replies keyed by a hash of the conversation up to the last user message plus request tuning (`jz_site_reply_cache_v3`). Prevents duplicate backend calls on refresh/resend.
